@@ -209,7 +209,7 @@ const EMPTY_TURN = () => ({dice:[0,0,0,0,0,0],held:[false,false,false,false,fals
 
 const ghH = t => ({Authorization:`token ${t}`,Accept:'application/vnd.github.v3+json'});
 async function ghRead(cfg) {
-  const r=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/gamedata.json`,
+  const r=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/gamedataPlay.json`,
     {headers:ghH(cfg.token),cache:'no-store'});
   if (r.status===404) return {data:null,sha:null};
   if (!r.ok) throw new Error(`GitHub ${r.status}`);
@@ -219,7 +219,7 @@ async function ghRead(cfg) {
 async function ghWrite(cfg,data,sha) {
   const body={message:'Kniffel update',content:btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))))};
   if (sha) body.sha=sha;
-  const r=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/gamedata.json`,
+  const r=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/gamedataPlay.json`,
     {method:'PUT',headers:{...ghH(cfg.token),'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});
   if (!r.ok) throw new Error(`GitHub ${r.status}`);
   return (await r.json()).content.sha;
@@ -238,13 +238,13 @@ function mergeData(local,remote) {
 
 function App() {
   const [screen,  setScreen]  = useState('home');
-  const [games,   setGames]   = useState(()=>ls('kx:games',[]));
-  const [cur,     setCur]     = useState(()=>ls('kx:current',null));
-  const [roster,  setRoster]  = useState(()=>ls('kx:roster',[]));
+  const [games,   setGames]   = useState(()=>ls('kxplay:games',[]));
+  const [cur,     setCur]     = useState(()=>ls('kxplay:current',null));
+  const [roster,  setRoster]  = useState(()=>ls('kxplay:roster',[]));
   const [stab,    setStab]    = useState('leaderboard');
   const [sPlayer, setSPlayer] = useState(null);
   const [sCmp,    setSCmp]    = useState([null,null]);
-  const [ghCfg,   setGhCfg]   = useState(()=>ls('kx:gh',null));
+  const [ghCfg,   setGhCfg]   = useState(()=>ls('kxplay:gh',null));
   const [syncSt,  setSyncSt]  = useState('idle');
   const [syncMsg, setSyncMsg] = useState('');
 
@@ -259,10 +259,10 @@ function App() {
     try {
       const {data,sha}=await ghRead(c);
       if (data) {
-        const m=mergeData({games:ls('kx:games',[]),roster:ls('kx:roster',[])},data);
-        setGames(m.games); lsSet('kx:games',m.games);
-        setRoster(m.roster); lsSet('kx:roster',m.roster);
-        lsSet('kx:gh_sha',sha);
+        const m=mergeData({games:ls('kxplay:games',[]),roster:ls('kxplay:roster',[])},data);
+        setGames(m.games); lsSet('kxplay:games',m.games);
+        setRoster(m.roster); lsSet('kxplay:roster',m.roster);
+        lsSet('kxplay:gh_sha',sha);
       }
       setSyncSt('ok'); setSyncMsg(new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}));
     } catch(e){setSyncSt('error');setSyncMsg(e.message);}
@@ -273,14 +273,14 @@ function App() {
     try {
       const {sha}=await ghRead(c);
       const newSha=await ghWrite(c,{version:1,roster:r,games:g},sha);
-      lsSet('kx:gh_sha',newSha);
+      lsSet('kxplay:gh_sha',newSha);
       setSyncSt('ok'); setSyncMsg(new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}));
     } catch(e){setSyncSt('error');setSyncMsg(e.message);}
   };
 
-  const saveGames  = (g,r) => { setGames(g); lsSet('kx:games',g); pushGh(g,r||roster); };
-  const saveRoster = r     => { setRoster(r); lsSet('kx:roster',r); };
-  const saveCur    = g     => { setCur(g); g?lsSet('kx:current',g):lsDel('kx:current'); };
+  const saveGames  = (g,r) => { setGames(g); lsSet('kxplay:games',g); pushGh(g,r||roster); };
+  const saveRoster = r     => { setRoster(r); lsSet('kxplay:roster',r); };
+  const saveCur    = g     => { setCur(g); g?lsSet('kxplay:current',g):lsDel('kxplay:current'); };
 
   const startGame = sel => {
     const nr=[...new Set([...roster,...sel])];
@@ -305,7 +305,7 @@ function App() {
     ${screen==='gameSetup'&& html`<${GameSetup} roster=${roster} onStart=${startGame} onBack=${()=>setScreen('home')}/>`}
     ${screen==='game' && cur && html`<${Game} ...${{game:cur,roster,onUpdate:saveCur,onFinish:finishGame,onBack:()=>setScreen('home')}}/>`}
     ${screen==='stats'    && html`<${Stats} ...${{games,roster,tab:stab,setTab:setStab,selPlayer:sPlayer,setSelPlayer:setSPlayer,cmp:sCmp,setCmp:setSCmp,onBack:()=>setScreen('home')}}/>`}
-    ${screen==='gh'       && html`<${GhSettings} initial=${ghCfg} onSave=${cfg=>{setGhCfg(cfg);lsSet('kx:gh',cfg);if(cfg)doSync(cfg);setScreen('home');}} onBack=${()=>setScreen('home')}/>`}
+    ${screen==='gh'       && html`<${GhSettings} initial=${ghCfg} onSave=${cfg=>{setGhCfg(cfg);lsSet('kxplay:gh',cfg);if(cfg)doSync(cfg);setScreen('home');}} onBack=${()=>setScreen('home')}/>`}
   </div>`;
 }
 
