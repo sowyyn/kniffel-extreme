@@ -1,4 +1,4 @@
-const CACHE = 'kniffel-extreme-game-v1'; // ⬆️ Bei jedem Update hochzählen
+const CACHE = 'kniffel-extreme-game-v2'; // ⬆️ Bei jedem Update hochzählen
 
 const LOCAL = ['./', './index.html', './manifest.json', './icon.svg'];
 
