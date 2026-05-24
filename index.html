@@ -100,7 +100,7 @@ const PCL = ['#d8b4fe','#f9a8d4','#93c5fd','#fde68a','#86efac'];
 
 const MODE_ICON  = { manual:'📝', app:'🎲' };
 const MODE_LABEL = { manual:'Manuell', app:'App-Modus' };
-const VERSION = 'v2'; // ⬆️ Sync mit sw.js CACHE-Version halten
+const VERSION = 'v7'; // ⬆️ Sync mit sw.js CACHE-Version halten
 
 // ══ SCORING ENGINE ═══════════════════════════════════════════════
 
@@ -189,9 +189,20 @@ async function ghWrite(cfg,data,sha) {
   return (await r.json()).content.sha;
 }
 function mergeData(local,remote) {
+  // Games: union merge (both sides contribute)
   const games=[...(remote.games||[])], ids=new Set(games.map(g=>g.id));
   for (const g of (local.games||[])) if (!ids.has(g.id)){games.push(g);ids.add(g.id);}
-  const roster=[...new Set([...(remote.roster||[]),...(local.roster||[])])];
+
+  // Roster: local authoritative + new players from remote games (for stats).
+  // Blocklist (kx:deleted_roster) permanently excludes deleted players — even if
+  // they appear in old game history — so they never come back after sync.
+  const localSet = new Set(local.roster||[]);
+  const blocked  = new Set(ls('kx:deleted_roster',[]));
+  const remoteGameNames = new Set((remote.games||[]).flatMap(g=>(g.players||[]).map(p=>p.name)));
+  const roster = [...localSet];
+  for (const name of remoteGameNames)
+    if (!localSet.has(name) && !blocked.has(name)) roster.push(name);
+
   return {games:games.sort((a,b)=>a.id.localeCompare(b.id)),roster};
 }
 
@@ -248,9 +259,60 @@ function App() {
     } catch(e){setSyncSt('error');setSyncMsg(e.message);}
   };
 
-  const saveGames  = (g,r) => { setGames(g); lsSet('kx:games',g); pushGh(g,r||roster); };
-  const saveRoster = r     => { setRoster(r); lsSet('kx:roster',r); };
-  const saveCur    = g     => { setCur(g); g?lsSet('kx:current',g):lsDel('kx:current'); };
+  const saveGames    = (g,r) => { setGames(g); lsSet('kx:games',g); pushGh(g,r||roster); };
+  const saveRoster   = r     => { setRoster(r); lsSet('kx:roster',r); };
+  const saveCur      = g     => { setCur(g); g?lsSet('kx:current',g):lsDel('kx:current'); };
+  const deletePlayer = name  => {
+    const r = roster.filter(n=>n!==name);
+    saveRoster(r);
+    const blocked = [...new Set([...ls('kx:deleted_roster',[]), name])];
+    lsSet('kx:deleted_roster', blocked);
+    pushGh(games, r);
+  };
+
+  // Archive: remove player's scores from games but keep games for others.
+  // Player data saved locally so they can be restored.
+  const archivePlayer = name => {
+    const gameEntries = games
+      .filter(g => g.players.some(p => p.name === name))
+      .map(g => ({ gameId: g.id, entry: g.players.find(p => p.name === name) }));
+    const archive = ls('kx:archive', []);
+    lsSet('kx:archive', [...archive.filter(a => a.name !== name),
+      { name, archivedAt: new Date().toLocaleDateString('de-DE'), gameEntries }]);
+    const newGames  = games.map(g => ({...g, players: g.players.filter(p => p.name !== name)}))
+                           .filter(g => g.players.length > 0);
+    const newRoster = roster.filter(n => n !== name);
+    const blocked   = [...new Set([...ls('kx:deleted_roster',[]), name])];
+    lsSet('kx:deleted_roster', blocked);
+    saveRoster(newRoster);
+    saveGames(newGames, newRoster);
+  };
+
+  // Hard delete: no games → just remove completely (no archive needed)
+  const hardDeletePlayer = name => {
+    const newRoster = roster.filter(n => n !== name);
+    const blocked   = [...new Set([...ls('kx:deleted_roster',[]), name])];
+    lsSet('kx:deleted_roster', blocked);
+    saveRoster(newRoster);
+    saveGames(games, newRoster);
+  };
+
+  const restorePlayer = name => {
+    const archive  = ls('kx:archive', []);
+    const archived = archive.find(a => a.name === name);
+    if (!archived) return;
+    const newGames = games.map(g => {
+      const found = archived.gameEntries.find(e => e.gameId === g.id);
+      if (!found || g.players.some(p => p.name === name)) return g;
+      return {...g, players: [...g.players, found.entry]};
+    });
+    lsSet('kx:archive', archive.filter(a => a.name !== name));
+    const blocked = ls('kx:deleted_roster', []).filter(n => n !== name);
+    lsSet('kx:deleted_roster', blocked);
+    const newRoster = [...roster, name];
+    saveRoster(newRoster);
+    saveGames(newGames, newRoster);
+  };
 
   const startGame = (sel, mode) => {
     const nr=[...new Set([...roster,...sel])]; saveRoster(nr);
@@ -269,11 +331,11 @@ function App() {
 
   return html`<div style=${{minHeight:'100vh',background:C.bg,color:C.text}}>
     ${screen==='home'     && html`<${Home}       ...${{games,roster,cur,syncBadge,onNew:()=>setScreen('gameSetup'),onContinue:()=>setScreen('game'),onStats:()=>setScreen('stats'),onGh:()=>setScreen('gh')}}/>`}
-    ${screen==='gameSetup'&& html`<${GameSetup}  roster=${roster} onStart=${startGame} onBack=${()=>setScreen('home')}/>`}
+    ${screen==='gameSetup'&& html`<${GameSetup}  games=${games} roster=${roster} onStart=${startGame} onDeletePlayer=${deletePlayer} onBack=${()=>setScreen('home')}/>`}
     ${screen==='game'&&cur&& (gameMode(cur)==='app'
       ? html`<${DiceGame}   ...${{game:cur,roster,onUpdate:saveCur,onFinish:finishGame,onBack:()=>setScreen('home')}}/>`
       : html`<${ManualGame} ...${{game:cur,roster,onUpdate:saveCur,onFinish:finishGame,onBack:()=>setScreen('home')}}/>`)}
-    ${screen==='stats'    && html`<${Stats}       ...${{games,roster,tab:stab,setTab:setStab,filter:statFilter,setFilter:setStatFilter,selPlayer:sPlayer,setSelPlayer:setSPlayer,cmp:sCmp,setCmp:setSCmp,onBack:()=>setScreen('home')}}/>`}
+    ${screen==='stats'    && html`<${Stats}       ...${{games,roster,tab:stab,setTab:setStab,filter:statFilter,setFilter:setStatFilter,selPlayer:sPlayer,setSelPlayer:setSPlayer,cmp:sCmp,setCmp:setSCmp,onArchive:archivePlayer,onHardDelete:hardDeletePlayer,onRestore:restorePlayer,onBack:()=>setScreen('home')}}/>`}
     ${screen==='gh'       && html`<${GhSettings}  initial=${ghCfg} onSave=${cfg=>{setGhCfg(cfg);lsSet('kx:gh',cfg);if(cfg)doSync(cfg);setScreen('home');}} onBack=${()=>setScreen('home')}/>`}
   </div>`;
 }
@@ -286,10 +348,6 @@ function Home({games,roster,cur,syncBadge,onNew,onContinue,onStats,onGh}) {
     <div style=${{textAlign:'center',padding:'44px 0 26px'}}>
       <div style=${{fontSize:40,fontWeight:900,letterSpacing:-1}}>Kniffel<span style=${{color:PC[0],fontStyle:'italic'}}>Extreme</span></div>
       <div style=${{marginTop:5,fontSize:11,color:C.muted2}}>${VERSION}</div>
-      <div style=${{marginTop:4,fontSize:13,color:C.muted}}>
-        ${roster.map((n,i)=>html`<span key=${i} style=${{color:PCL[i%5],marginRight:6}}>${n}</span>`)}
-      </div>
-      <div style=${{marginTop:4}}>${syncBadge}</div>
     </div>
     <div style=${{display:'flex',flexDirection:'column',gap:10}}>
       ${cur && html`<${Btn} onClick=${onContinue} bg=${PC[0]}>
@@ -300,7 +358,10 @@ function Home({games,roster,cur,syncBadge,onNew,onContinue,onStats,onGh}) {
         📊 Statistiken <span style=${{fontSize:12,color:C.muted,marginLeft:4}}>${games.length} Spiele</span>
       </${Btn}>
     </div>
-    <div style=${{display:'flex',justifyContent:'center',marginTop:12}}>
+    <div style=${{display:'flex',justifyContent:'center',marginTop:8}}>
+      ${syncBadge}
+    </div>
+    <div style=${{display:'flex',justifyContent:'center',marginTop:4}}>
       <button onClick=${onGh} style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:13}}>☁ GitHub Sync</button>
     </div>
     ${recent.length>0 && html`<div style=${{marginTop:28}}>
@@ -326,17 +387,37 @@ function Home({games,roster,cur,syncBadge,onNew,onContinue,onStats,onGh}) {
 
 // ══ GAME SETUP ═══════════════════════════════════════════════════
 
-function GameSetup({roster,onStart,onBack}) {
+function GameSetup({games,roster,onStart,onDeletePlayer,onBack}) {
   const [selected,setSelected] = useState([]);
   const [newName, setNewName]  = useState('');
+  const [editing, setEditing]  = useState(false);
 
-  const toggle = name => selected.includes(name)
-    ? setSelected(selected.filter(n=>n!==name))
-    : selected.length<10 && setSelected([...selected,name]);
+  // 5 most recently active players still in roster
+  const recentActive = [...new Set(
+    [...games].reverse().flatMap(g=>g.players.map(p=>p.name))
+  )].filter(n=>roster.includes(n)).slice(0,5);
+
+  // Remaining roster members not in the top-5
+  const remaining = roster.filter(n=>!recentActive.includes(n));
+
+  const toggle = name => {
+    if (editing) return;
+    selected.includes(name)
+      ? setSelected(selected.filter(n=>n!==name))
+      : selected.length<10 && setSelected([...selected,name]);
+  };
   const addNew = () => {
     const n=newName.trim(); if(!n||selected.length>=10) return;
     if(!selected.includes(n)) setSelected([...selected,n]);
     setNewName('');
+  };
+  const addFromDropdown = name => {
+    if(!name||selected.includes(name)||selected.length>=10) return;
+    setSelected([...selected,name]);
+  };
+  const deletePlayer = name => {
+    setSelected(sel=>sel.filter(n=>n!==name));
+    onDeletePlayer(name);
   };
 
   const ready = selected.length >= 2;
@@ -344,7 +425,7 @@ function GameSetup({roster,onStart,onBack}) {
   return html`<div style=${{maxWidth:460,margin:'0 auto',padding:'20px 16px 40px'}}>
     <div style=${{display:'flex',alignItems:'center',gap:12,marginBottom:24}}>
       ${roster.length>0&&html`<button onClick=${onBack} style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:20,padding:0}}>‹</button>`}
-      <span style=${{fontSize:22,fontWeight:800}}>Neues Spiel</span>
+      <span style=${{fontSize:22,fontWeight:800,flex:1}}>Neues Spiel</span>
     </div>
 
     ${selected.length>0&&html`<div style=${{marginBottom:20}}>
@@ -360,18 +441,74 @@ function GameSetup({roster,onStart,onBack}) {
     </div>`}
 
     ${roster.length>0&&html`<div style=${{marginBottom:20}}>
-      <div style=${{fontSize:11,color:C.muted2,letterSpacing:2,textTransform:'uppercase',marginBottom:8,fontWeight:700}}>Bekannte Spieler</div>
+      <div style=${{display:'flex',alignItems:'center',marginBottom:8}}>
+        <div style=${{fontSize:11,color:C.muted2,letterSpacing:2,textTransform:'uppercase',fontWeight:700,flex:1}}>Bekannte Spieler</div>
+        <button onClick=${()=>setEditing(e=>!e)} style=${{
+          background:editing?'rgba(239,68,68,0.15)':C.surface2,
+          border:`1px solid ${editing?C.red:C.border}`,
+          borderRadius:10,padding:'3px 10px',
+          color:editing?C.red:C.muted,cursor:'pointer',fontSize:11,fontWeight:700,
+        }}>${editing?'✓ Fertig':'✎ Verwalten'}</button>
+      </div>
+      ${editing&&html`<div style=${{fontSize:11,color:C.red,marginBottom:8,padding:'6px 10px',
+        background:'rgba(239,68,68,0.08)',borderRadius:8,border:`1px solid rgba(239,68,68,0.2)`}}>
+        ⚠ × löscht die Spielerin dauerhaft aus der Auswahl (Statistiken bleiben erhalten)
+      </div>`}
+
+      <!-- Top 5 recent as quick-select buttons -->
       <div style=${{display:'flex',flexWrap:'wrap',gap:8}}>
-        ${roster.map((n)=>{
+        ${recentActive.map(n=>{
           const idx=selected.indexOf(n); const sel=idx>=0;
-          return html`<button key=${n} onClick=${()=>toggle(n)} style=${{
-            background:sel?C.surface2:C.surface, border:`2px solid ${sel?PC[idx%5]:C.border}`,
-            borderRadius:20,padding:'7px 14px',color:sel?PC[idx%5]:C.muted,
-            cursor:'pointer',fontSize:13,fontWeight:sel?700:400}}>
-            ${sel?`${idx+1}. `:''}${n}
-          </button>`;
+          return html`<div key=${n} style=${{
+            display:'flex',alignItems:'center',gap:0,
+            background:sel&&!editing?C.surface2:C.surface,
+            border:`2px solid ${sel&&!editing?PC[idx%5]:editing?'rgba(239,68,68,0.4)':C.border}`,
+            borderRadius:20,overflow:'hidden',
+          }}>
+            <button onClick=${()=>toggle(n)} disabled=${editing} style=${{
+              background:'none',border:'none',
+              padding:editing?'7px 8px 7px 14px':'7px 14px',
+              color:sel&&!editing?PC[idx%5]:C.muted,
+              cursor:editing?'default':'pointer',fontSize:13,fontWeight:sel&&!editing?700:400,
+            }}>${sel&&!editing?`${idx+1}. `:''}${n}</button>
+            ${editing&&html`<button onClick=${()=>deletePlayer(n)} style=${{
+              background:'none',border:'none',borderLeft:`1px solid rgba(239,68,68,0.3)`,
+              padding:'7px 10px',color:C.red,cursor:'pointer',fontSize:14,lineHeight:1,
+            }}>×</button>`}
+          </div>`;
         })}
       </div>
+
+      <!-- Dropdown for remaining players -->
+      ${remaining.length>0&&html`<div style=${{marginTop:10,position:'relative'}}>
+        <select
+          value=""
+          onChange=${e=>{ addFromDropdown(e.target.value); e.target.value=''; }}
+          style=${{
+            width:'100%',background:C.surface,border:`1px solid ${C.border}`,
+            borderRadius:12,padding:'10px 36px 10px 14px',
+            color:C.muted,fontSize:13,outline:'none',cursor:'pointer',
+          }}>
+          <option value="">+ Weitere Spielerinnen…</option>
+          ${remaining.map(n=>html`<option key=${n} value=${n}
+            disabled=${selected.includes(n)||editing}
+          >${n}${selected.includes(n)?' ✓':''}</option>`)}
+        </select>
+        <span style=${{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',color:C.muted,pointerEvents:'none'}}>▾</span>
+        ${editing&&html`<div style=${{marginTop:6,display:'flex',flexWrap:'wrap',gap:6}}>
+          ${remaining.map(n=>html`<div key=${n} style=${{
+            display:'flex',alignItems:'center',gap:0,
+            background:C.surface,border:`1px solid rgba(239,68,68,0.4)`,
+            borderRadius:20,overflow:'hidden',fontSize:13,
+          }}>
+            <span style=${{padding:'5px 10px 5px 12px',color:C.muted}}>${n}</span>
+            <button onClick=${()=>deletePlayer(n)} style=${{
+              background:'none',border:'none',borderLeft:`1px solid rgba(239,68,68,0.3)`,
+              padding:'5px 10px',color:C.red,cursor:'pointer',fontSize:14,lineHeight:1,
+            }}>×</button>
+          </div>`)}
+        </div>`}
+      </div>`}
     </div>`}
 
     <div style=${{marginBottom:28}}>
@@ -758,7 +895,9 @@ function DiceGame({game,roster,onUpdate,onFinish,onBack}) {
 
 // ══ STATS ════════════════════════════════════════════════════════
 
-function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,cmp,setCmp,onBack}) {
+function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,cmp,setCmp,onArchive,onHardDelete,onRestore,onBack}) {
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // name to delete
+  const archive = ls('kx:archive', []);
   const filteredGames = filter==='all' ? games : games.filter(g=>gameMode(g)===filter);
 
   if (!games.length) return html`<div style=${{maxWidth:460,margin:'0 auto',padding:'60px 20px',textAlign:'center'}}>
@@ -770,7 +909,16 @@ function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,
   const manualCount = games.filter(g=>gameMode(g)==='manual').length;
   const appCount    = games.filter(g=>gameMode(g)==='app').length;
 
-  const playerStats=roster.map(name=>{
+  // All players who ever played — derived from game history, not roster.
+  // This ensures deleted players still appear in stats.
+  const allHistoryPlayers = [...new Set(games.flatMap(g=>g.players.map(p=>p.name)))];
+  // Stable color: use roster index if present, else position in history list
+  const colorIdx = name => {
+    const ri = roster.indexOf(name);
+    return ri >= 0 ? ri : roster.length + allHistoryPlayers.indexOf(name);
+  };
+
+  const playerStats=allHistoryPlayers.map(name=>{
     const pg=filteredGames.filter(g=>g.players.some(p=>p.name===name));
     if (!pg.length) return null;
     const getP=g=>g.players.find(p=>p.name===name);
@@ -786,10 +934,11 @@ function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,
       const vals=pg.filter(g=>getP(g).scores[cat.id]>0).map(g=>Math.round(getP(g).scores[cat.id]/cat.n));
       return {label:cat.face,name:cat.label,val:vals.length?+(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):0};
     });
-    return {name,n:pg.length,wins,avg:avg(tots),best:tots.length?Math.max(...tots):0,worst:tots.length?Math.min(...tots):0,bonusRate:pg.length?Math.round(sc.filter(s=>s.b>0).length/pg.length*100):0,catData,avgDice,tots};
+    const ci = colorIdx(name);
+    return {name,n:pg.length,wins,avg:avg(tots),best:tots.length?Math.max(...tots):0,worst:tots.length?Math.min(...tots):0,bonusRate:pg.length?Math.round(sc.filter(s=>s.b>0).length/pg.length*100):0,catData,avgDice,tots,ci};
   }).filter(Boolean);
 
-  const TABS=[{id:'leaderboard',l:'Rangliste'},{id:'player',l:'Spieler'},{id:'compare',l:'Vergleich'},{id:'dice',l:'Würfel'},{id:'gesamt',l:'Gesamt'}];
+  const TABS=[{id:'leaderboard',l:'Rangliste'},{id:'player',l:'Spieler'},{id:'compare',l:'Vergleich'},{id:'dice',l:'Würfel'},{id:'gesamt',l:'Gesamt'},{id:'archiv',l:'Archiv'+(archive.length?' ('+archive.length+')':'')}];
   const selP=selPlayer||playerStats[0]?.name;
   const selSt=playerStats.find(p=>p.name===selP);
 
@@ -833,16 +982,22 @@ function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,
 
       ${tab==='leaderboard'&&playerStats.length>0&&html`<div>
         ${[...playerStats].sort((a,b)=>b.avg-a.avg).map((p,rank)=>{
-          const ci=roster.indexOf(p.name);
+          const ci=p.ci;
           return html`<div key=${p.name} style=${{background:C.surface,borderRadius:16,padding:'12px 16px',marginBottom:8,display:'grid',gridTemplateColumns:'28px 1fr auto',gap:12,alignItems:'center',borderLeft:`3px solid ${PC[ci%5]}`}}>
             <div style=${{fontSize:18,fontWeight:900,color:rank===0?'#fde68a':C.muted2}}>${rank+1}.</div>
             <div>
               <div style=${{fontWeight:700,fontSize:15,color:PCL[ci%5]}}>${p.name}</div>
               <div style=${{fontSize:11,color:C.muted,marginTop:2}}>${p.n} Spiele · ${p.wins} Siege · Bonus ${p.bonusRate}%</div>
             </div>
-            <div style=${{textAlign:'right'}}>
-              <div style=${{fontSize:22,fontWeight:900}}>${p.avg}</div>
-              <div style=${{fontSize:10,color:C.muted}}>Ø Punkte</div>
+            <div style=${{textAlign:'right',display:'flex',alignItems:'center',gap:10}}>
+              <div>
+                <div style=${{fontSize:22,fontWeight:900}}>${p.avg}</div>
+                <div style=${{fontSize:10,color:C.muted}}>Ø Punkte</div>
+              </div>
+              <button onClick=${()=>setDeleteConfirm(p.name)} style=${{
+                background:'none',border:`1px solid ${C.border}`,borderRadius:8,
+                padding:'6px 8px',color:C.muted,cursor:'pointer',fontSize:14,lineHeight:1,
+              }} title="Aus Statistik löschen">🗑</button>
             </div>
           </div>`;
         })}
@@ -854,7 +1009,7 @@ function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,
                 <${XAxis} dataKey="i" tick=${{fill:C.muted,fontSize:10}} axisLine=${false} tickLine=${false}/>
                 <${YAxis} hide=${true}/>
                 <${Tooltip} contentStyle=${{background:C.surface2,border:`1px solid ${C.border}`,borderRadius:10}} cursor=${{fill:'rgba(255,255,255,0.05)'}}/>
-                ${playerStats.map((p)=>html`<${Bar} key=${p.name} dataKey=${p.name} fill=${PC[roster.indexOf(p.name)%5]} radius=${[3,3,0,0]}/>`)}
+                ${playerStats.map((p)=>html`<${Bar} key=${p.name} dataKey=${p.name} fill=${PC[p.ci%5]} radius=${[3,3,0,0]}/>`)}
               </${BarChart}>
             </${ResponsiveContainer}>
           </div>
@@ -863,7 +1018,7 @@ function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,
 
       ${tab==='player'&&html`<div>
         <${Sel} val=${selP} set=${setSelPlayer} label="Spieler"/>
-        ${selSt&&(()=>{const ci=roster.indexOf(selSt.name);return html`<div>
+        ${selSt&&(()=>{const ci=selSt.ci;return html`<div>
           <div style=${{background:C.surface,borderRadius:16,padding:14,marginBottom:12,borderTop:`3px solid ${PC[ci%5]}`}}>
             <div style=${{fontSize:15,fontWeight:800,color:PCL[ci%5],marginBottom:10}}>${selSt.name}</div>
             <div style=${{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
@@ -883,6 +1038,11 @@ function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,
               <div style=${{height:5,background:C.surface2,borderRadius:3,overflow:'hidden'}}><div style=${{height:5,borderRadius:3,background:PC[ci%5],width:`${c.rate}%`}}/></div>
             </div>`)}
           </div>
+          <button onClick=${()=>setDeleteConfirm(selSt.name)} style=${{
+            width:'100%',marginTop:12,padding:'11px',borderRadius:14,
+            background:'transparent',border:`1px solid ${C.border}`,
+            color:C.muted,cursor:'pointer',fontSize:13,fontWeight:600,
+          }}>🗑 ${selSt.name} aus Statistik löschen</button>
         </div>`;})()} 
       </div>`}
 
@@ -895,7 +1055,7 @@ function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,
           if(!shared.length) return html`<div style=${{color:C.muted,textAlign:'center',padding:20}}>Keine gemeinsamen Spiele.</div>`;
           const getS=(g,n)=>calc(g.players.find(p=>p.name===n).scores).total;
           const p1w=shared.filter(g=>getS(g,p1)>getS(g,p2)).length,p2w=shared.filter(g=>getS(g,p2)>getS(g,p1)).length,ties=shared.length-p1w-p2w;
-          const c1=PC[roster.indexOf(p1)%5],c2=PC[roster.indexOf(p2)%5],cl1=PCL[roster.indexOf(p1)%5],cl2=PCL[roster.indexOf(p2)%5];
+          const ci1=playerStats.find(p=>p.name===p1)?.ci??0,ci2=playerStats.find(p=>p.name===p2)?.ci??1;const c1=PC[ci1%5],c2=PC[ci2%5],cl1=PCL[ci1%5],cl2=PCL[ci2%5];
           const p1t=shared.map(g=>getS(g,p1)),p2t=shared.map(g=>getS(g,p2));
           return html`<div>
             <div style=${{background:C.surface,borderRadius:16,padding:16,marginBottom:12}}>
@@ -942,7 +1102,7 @@ function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,
                 <${YAxis} tick=${{fill:C.muted,fontSize:10}} axisLine=${false} tickLine=${false} width=${24}/>
                 <${Tooltip} contentStyle=${{background:C.surface2,border:`1px solid ${C.border}`,borderRadius:10}} cursor=${{fill:'rgba(255,255,255,0.05)'}} formatter=${(v,n)=>[`Ø ${v}`,n]}/>
                 <${Bar} dataKey="val" name=${selSt.name} radius=${[5,5,0,0]}>
-                  ${selSt.avgDice.map((_,i)=>html`<${Cell} key=${i} fill=${PC[roster.indexOf(selSt.name)%5]}/>`)}
+                  ${selSt.avgDice.map((_,i)=>html`<${Cell} key=${i} fill=${PC[selSt.ci%5]}/>`)}
                 </${Bar}>
               </${BarChart}>
             </${ResponsiveContainer}>
@@ -975,7 +1135,97 @@ function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,
           </div>
         </div>`;
       })()}
+
+      <!-- Archiv tab -->
+      ${tab==='archiv'&&html`<div>
+        ${archive.length===0
+          ? html`<div style=${{textAlign:'center',color:C.muted,padding:40}}>
+              <div style=${{fontSize:32,marginBottom:12}}>📦</div>
+              Keine archivierten Spielerinnen.
+            </div>`
+          : archive.map(a=>{
+              const gameCount = a.gameEntries?.length ?? 0;
+              return html`<div key=${a.name} style=${{
+                background:C.surface,borderRadius:16,padding:'14px 16px',marginBottom:10,
+                display:'flex',alignItems:'center',gap:12,
+              }}>
+                <div style=${{flex:1}}>
+                  <div style=${{fontWeight:700,fontSize:15}}>${a.name}</div>
+                  <div style=${{fontSize:11,color:C.muted,marginTop:3}}>
+                    Archiviert ${a.archivedAt} · ${gameCount} Spiel${gameCount!==1?'e':''} gespeichert
+                  </div>
+                </div>
+                <button onClick=${()=>onRestore(a.name)} style=${{
+                  background:'rgba(34,197,94,0.15)',border:`1px solid ${C.green}`,
+                  borderRadius:10,padding:'8px 14px',color:C.green,
+                  cursor:'pointer',fontSize:12,fontWeight:700,whiteSpace:'nowrap',
+                }}>↩ Wiederherstellen</button>
+              </div>`;
+            })}
+      </div>`}
     </div>
+
+    <!-- Delete/Archive confirmation modal -->
+    ${deleteConfirm && (()=>{
+      const affected = games.filter(g=>g.players.some(p=>p.name===deleteConfirm)).length;
+      const hasGames = affected > 0;
+      return html`<div onClick=${()=>setDeleteConfirm(null)} style=${{
+        position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',
+        display:'flex',alignItems:'flex-end',justifyContent:'center',zIndex:50,
+      }}>
+        <div onClick=${e=>e.stopPropagation()} className="slide-up" style=${{
+          background:C.surface,borderRadius:'22px 22px 0 0',
+          width:'100%',maxWidth:460,padding:'24px 20px 44px',
+          borderTop:`2px solid ${hasGames?'#f59e0b':C.red}`,
+        }}>
+          <div style=${{width:36,height:4,background:C.border,borderRadius:2,margin:'0 auto 20px'}}/>
+          <div style=${{fontSize:22,fontWeight:800,marginBottom:6}}>${deleteConfirm}</div>
+
+          ${hasGames ? html`<div>
+            <!-- Option 1: Archive -->
+            <div style=${{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.3)',
+              borderRadius:14,padding:'14px',marginBottom:10}}>
+              <div style=${{fontSize:13,fontWeight:700,color:'#fde68a',marginBottom:6}}>
+                📦 Archivieren (empfohlen)
+              </div>
+              <div style=${{fontSize:12,color:C.muted,lineHeight:1.5,marginBottom:12}}>
+                Spielerin wird aus der Auswahl entfernt. Ihre ${affected} Spiel${affected!==1?'e':''} bleiben
+                für die anderen erhalten. Eigene Daten werden lokal gesichert
+                und können jederzeit wiederhergestellt werden.
+              </div>
+              <button onClick=${()=>{ onArchive(deleteConfirm); setDeleteConfirm(null); }} style=${{
+                width:'100%',padding:'12px',borderRadius:12,border:'none',
+                background:'#92400e',color:'#fde68a',fontSize:14,fontWeight:700,cursor:'pointer',
+              }}>📦 Archivieren</button>
+            </div>
+
+            <!-- Option 2: Hard delete -->
+            <div style=${{marginTop:6}}>
+              <button onClick=${()=>{ onHardDelete(deleteConfirm); setDeleteConfirm(null); }}
+                style=${{width:'100%',padding:'10px',borderRadius:12,
+                  background:'none',border:`1px solid ${C.border}`,
+                  color:C.muted,fontSize:12,cursor:'pointer'}}>
+                ✕ Komplett löschen inkl. aller Spiele
+              </button>
+            </div>
+          </div>` : html`<div>
+            <div style=${{fontSize:13,color:C.muted,lineHeight:1.5,marginBottom:16}}>
+              Diese Spielerin hat keine Spiele und wird dauerhaft gelöscht.
+            </div>
+            <button onClick=${()=>{ onHardDelete(deleteConfirm); setDeleteConfirm(null); }} style=${{
+              width:'100%',padding:'13px',borderRadius:14,border:'none',
+              background:'#7f1d1d',color:'white',fontSize:15,fontWeight:700,cursor:'pointer',
+            }}>✕ Endgültig löschen</button>
+          </div>`}
+
+          <button onClick=${()=>setDeleteConfirm(null)} style=${{
+            width:'100%',marginTop:10,padding:'12px',borderRadius:14,
+            background:'none',border:`1px solid ${C.border}`,
+            color:C.muted,fontSize:14,cursor:'pointer',
+          }}>Abbrechen</button>
+        </div>
+      </div>`;
+    })()}
   </div>`;
 }
 
