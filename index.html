@@ -10,12 +10,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="KniffelX">
-  <meta name="theme-color" content="#7c3aed">
+  <meta name="theme-color" content="#272368">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
-    body { background: #0d0b1a; color: #f0eeff;
-           font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+    body { background: #1c1840; color: #f0eeff; font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
            -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
     input[type=number] { -moz-appearance: textfield; }
     input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; }
@@ -28,27 +27,13 @@
       82%  { transform: rotate(5deg)   scale(1.04) translateY(-2px); }
       100% { transform: rotate(0deg)   scale(1)    translateY(0); }
     }
-    .die-roll  { animation: diceRoll 0.42s cubic-bezier(.36,.07,.19,.97) both; }
-    @keyframes popIn {
-      0%  { transform: scale(0.7); opacity:0; }
-      60% { transform: scale(1.08); opacity:1; }
-      100%{ transform: scale(1); }
-    }
+    .die-roll { animation: diceRoll 0.42s cubic-bezier(.36,.07,.19,.97) both; }
+    @keyframes popIn { 0%{transform:scale(0.7);opacity:0} 60%{transform:scale(1.08);opacity:1} 100%{transform:scale(1)} }
     .pop-in { animation: popIn 0.22s ease-out both; }
-    @keyframes slideUp {
-      from { transform: translateY(100%); }
-      to   { transform: translateY(0); }
-    }
+    @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
     .slide-up { animation: slideUp 0.28s cubic-bezier(0.16,1,0.3,1) both; }
-    @keyframes shimmer {
-      0%   { background-position: -200% center; }
-      100% { background-position:  200% center; }
-    }
-    .glow-btn {
-      background: linear-gradient(135deg,#7c3aed,#db2777,#7c3aed);
-      background-size: 200% auto;
-      animation: shimmer 2.5s linear infinite;
-    }
+    @keyframes shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
+    .glow-btn { background:linear-gradient(135deg,#7c3aed,#db2777,#7c3aed);background-size:200% auto;animation:shimmer 2.5s linear infinite; }
   </style>
 </head>
 <body>
@@ -60,7 +45,7 @@ import htm from 'https://esm.sh/htm@3';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'https://esm.sh/recharts@2?deps=react@18,react-dom@18';
 const html = htm.bind(h);
 
-// ══ CONSTANTS ════════════════════════════════════════════════════
+// ═══ CONSTANTS ═══════════════════════════════════════════════════
 
 const UPPER = [
   { id:'einer',   label:'Einer',   face:'⚀', n:1 },
@@ -71,308 +56,304 @@ const UPPER = [
   { id:'sechser', label:'Sechser', face:'⚅', n:6 },
 ];
 const LOWER = [
-  { id:'dreierpasch',      label:'Dreierpasch',     t:'var', desc:'alle Augen' },
-  { id:'viererpasch',      label:'Viererpasch',     t:'var', desc:'alle Augen' },
-  { id:'zweiPaare',        label:'Zwei Paare',      t:'var', desc:'alle Augen' },
-  { id:'dreiPaare',        label:'Drei Paare',      t:'fix', pts:35 },
-  { id:'zweiDreier',       label:'Zwei Dreier',     t:'fix', pts:45 },
-  { id:'fullHouse',        label:'Full-House',      t:'fix', pts:25 },
-  { id:'grossesFullHouse', label:'Gr. Full-House',  t:'fix', pts:45 },
-  { id:'kleineStrasse',    label:'Kl. Straße',      t:'fix', pts:30 },
-  { id:'grosseStrasse',    label:'Gr. Straße',      t:'fix', pts:40 },
-  { id:'highway',          label:'Highway',         t:'fix', pts:50 },
-  { id:'kniffel',          label:'Kniffel',         t:'fix', pts:50 },
-  { id:'kniffelExtreme',   label:'Kniffel Xtreme',  t:'fix', pts:75 },
-  { id:'zehnMinus',        label:'10 oder weniger', t:'fix', pts:40 },
-  { id:'dreiDreissig',     label:'33 oder mehr',    t:'fix', pts:40 },
-  { id:'chance',           label:'Chance',          t:'var', desc:'alle Augen' },
-  { id:'superChance',      label:'Super Chance',    t:'super',desc:'Augen × 2' },
+  { id:'dreierpasch',      label:'Dreierpasch',    t:'var', desc:'alle Augen',   rules:'Mindestens 3 gleiche Zahlen. Alle Augen des Wurfes zählen.' },
+  { id:'viererpasch',      label:'Viererpasch',    t:'var', desc:'alle Augen',   rules:'Mindestens 4 gleiche Zahlen. Alle Augen des Wurfes zählen.' },
+  { id:'zweiPaare',        label:'Zwei Paare',     t:'var', desc:'alle Augen',   rules:'Zwei verschiedene Zahlenpaare. Alle Augen des Wurfes zählen.' },
+  { id:'dreiPaare',        label:'Drei Paare',     t:'fix', pts:35,              rules:'Drei verschiedene Zahlenpaare → 35 Punkte.' },
+  { id:'zweiDreier',       label:'Zwei Dreier',    t:'fix', pts:45,              rules:'Zwei verschiedene Drillinge (z.B. drei 4er und drei 6er) → 45 Punkte.' },
+  { id:'fullHouse',        label:'Full-House',     t:'fix', pts:25,              rules:'3 gleiche + 2 gleiche andere Zahlen → 25 Punkte.' },
+  { id:'grossesFullHouse', label:'Gr. Full-House', t:'fix', pts:45,              rules:'4 gleiche + 2 gleiche andere Zahlen → 45 Punkte.' },
+  { id:'kleineStrasse',    label:'Kl. Straße',     t:'fix', pts:30,              rules:'4 aufeinanderfolgende Zahlen, die 2 anderen egal (z.B. 1,2,3,4,3,9) → 30 Punkte.' },
+  { id:'grosseStrasse',    label:'Gr. Straße',     t:'fix', pts:40,              rules:'5 aufeinanderfolgende Zahlen, der 6. egal (z.B. 2,3,4,5,6,3) → 40 Punkte.' },
+  { id:'highway',          label:'Highway',        t:'fix', pts:50,              rules:'6 aufeinanderfolgende Zahlen (z.B. 0,1,2,3,4,5) → 50 Punkte.' },
+  { id:'kniffel',          label:'Kniffel',        t:'fix', pts:50,              rules:'5 gleiche Zahlen → 50 Punkte.' },
+  { id:'kniffelExtreme',   label:'Kniffel Xtreme', t:'fix', pts:75,              rules:'6 gleiche Zahlen → 75 Punkte.' },
+  { id:'zehnMinus',        label:'10 oder weniger',t:'fix', pts:40,              rules:'Summe aller 6 Würfel ≤ 10 → 40 Punkte.' },
+  { id:'dreiDreissig',     label:'33 oder mehr',   t:'fix', pts:40,              rules:'Summe aller 6 Würfel ≥ 33 → 40 Punkte.' },
+  { id:'chance',           label:'Chance',         t:'var', desc:'alle Augen',   rules:'Beliebiger Wurf. Alle Augen aller 6 Würfel zählen.' },
+  { id:'superChance',      label:'Super Chance',   t:'super',desc:'Augen × 2',   rules:'Beliebiger Wurf. Alle Augen werden addiert und verdoppelt.' },
 ];
 const ALL_IDS = [...UPPER.map(c=>c.id), ...LOWER.map(c=>c.id)];
+const MODE_ICON  = { manual:'📝', app:'🎲' };
+const MODE_LABEL = { manual:'Manuell', app:'App-Modus' };
+
+// ═══ VERSION ════════════════════════════════════════════════════
+async function getSwVersion() {
+  if (!('caches' in window)) return '?';
+  try {
+    const keys = await caches.keys();
+    const key = keys.find(k => k.startsWith('yahtzee-extreme-v'));
+    return key ? key.replace('yahtzee-extreme-v','') : '?';
+  } catch { return '?'; }
+}
+
+// ═══ AUTO-SCORE ENGINE (für App-Modus: 5×d6 + 1×d10) ════════════
+const dSum  = d => d.reduce((a,b)=>a+b,0);
+const dCnts = d => { const c={}; d.forEach(v=>c[v]=(c[v]||0)+1); return c; };
+const cVals = c => Object.values(c);
+const cEnts = c => Object.entries(c);
+const SCORE = {
+  einer:   d=>d.filter(x=>x===1).reduce((a,b)=>a+b,0),
+  zweier:  d=>d.filter(x=>x===2).reduce((a,b)=>a+b,0),
+  dreier:  d=>d.filter(x=>x===3).reduce((a,b)=>a+b,0),
+  vierer:  d=>d.filter(x=>x===4).reduce((a,b)=>a+b,0),
+  fuenfer: d=>d.filter(x=>x===5).reduce((a,b)=>a+b,0),
+  sechser: d=>d.filter(x=>x===6).reduce((a,b)=>a+b,0),
+  dreierpasch:  d=>{ const c=dCnts(d); return cVals(c).some(v=>v>=3)?dSum(d):null; },
+  viererpasch:  d=>{ const c=dCnts(d); return cVals(c).some(v=>v>=4)?dSum(d):null; },
+  zweiPaare:    d=>{ const pairs=cEnts(dCnts(d)).filter(([,v])=>v>=2); return pairs.length>=2?dSum(d):null; },
+  dreiPaare:    d=>{ const pairs=cEnts(dCnts(d)).filter(([,v])=>v>=2); return pairs.length>=3?35:null; },
+  zweiDreier:   d=>{ const trips=cEnts(dCnts(d)).filter(([,v])=>v>=3); return trips.length>=2?45:null; },
+  fullHouse:    d=>{ const e=cEnts(dCnts(d)),t=e.find(([,v])=>v>=3); if(!t)return null; return e.find(([k,v])=>k!==t[0]&&v>=2)?25:null; },
+  grossesFullHouse: d=>{ const e=cEnts(dCnts(d)),f=e.find(([,v])=>v>=4); if(!f)return null; return e.find(([k,v])=>k!==f[0]&&v>=2)?45:null; },
+  kleineStrasse: d=>{ const u=[...new Set(d)].sort((a,b)=>a-b); for(let i=0;i<=u.length-4;i++) if(u[i+1]-u[i]===1&&u[i+2]-u[i+1]===1&&u[i+3]-u[i+2]===1)return 30; return null; },
+  grosseStrasse: d=>{ const u=[...new Set(d)].sort((a,b)=>a-b); for(let i=0;i<=u.length-5;i++){let ok=true;for(let j=0;j<4;j++)if(u[i+j+1]-u[i+j]!==1){ok=false;break;}if(ok)return 40;} return null; },
+  highway:       d=>{ const u=[...new Set(d)].sort((a,b)=>a-b); if(u.length<6)return null; for(let i=0;i<=u.length-6;i++){let ok=true;for(let j=0;j<5;j++)if(u[i+j+1]-u[i+j]!==1){ok=false;break;}if(ok)return 50;} return null; },
+  kniffel:       d=>cVals(dCnts(d)).some(v=>v>=5)?50:null,
+  kniffelExtreme:d=>cVals(dCnts(d)).some(v=>v>=6)?75:null,
+  zehnMinus:     d=>dSum(d)<=10?40:null,
+  dreiDreissig:  d=>dSum(d)>=33?40:null,
+  chance:        d=>dSum(d),
+  superChance:   d=>dSum(d)*2,
+};
+
+// ═══ HELPERS ════════════════════════════════════════════════════
+const calc = s => {
+  const u=UPPER.reduce((x,c)=>x+(s[c.id]??0),0);
+  const b=u>=73?45:0;
+  const l=LOWER.reduce((x,c)=>x+(s[c.id]??0),0);
+  return {u,b,uTotal:u+b,l,total:u+b+l};
+};
+const isDone  = g=>g.players.every(p=>ALL_IDS.every(id=>p.scores[id]!==undefined));
+const ls      = (k,d)=>{ try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;} };
+const lsSet   = (k,v)=>{ try{localStorage.setItem(k,JSON.stringify(v));}catch{} };
+const lsDel   = k    =>{ try{localStorage.removeItem(k);}catch{} };
+const pColor  = (name,roster,light=false)=>{ const i=roster.indexOf(name); return (light?PCL:PC)[i%5]; };
+const colW    = n=>n<=2?80:n<=3?72:n<=4?65:n<=5?60:n<=6?55:n<=7?52:48;
+const avg     = arr=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):0;
+const gameMode= g=>g.mode||'manual';
+const EMPTY_TURN=()=>({dice:[0,0,0,0,0,0],held:[false,false,false,false,false,false],rollCount:0,chipUsed:false});
+function migrateGames(games) {
+  return games.some(g=>!g.mode) ? games.map(g=>g.mode?g:{...g,mode:'manual'}) : games;
+}
 
 const C = {
-  bg:'#0d0b1a', surface:'#16122b', surface2:'#1e1a35', border:'#2a2448',
-  text:'#f0eeff', muted:'#7268a0', muted2:'#4a4270',
+  bg:'#1c1840', surface:'#272368', surface2:'#322d80', border:'#5a54a8',
+  text:'#f0eeff', muted:'#b0aadc', muted2:'#8880c0',
   green:'#22c55e', red:'#ef4444',
 };
 const PC  = ['#a855f7','#ec4899','#3b82f6','#f59e0b','#22c55e'];
 const PCL = ['#d8b4fe','#f9a8d4','#93c5fd','#fde68a','#86efac'];
 
-const MODE_ICON  = { manual:'📝', app:'🎲' };
-const MODE_LABEL = { manual:'Manuell', app:'App-Modus' };
-const VERSION = 'v7'; // ⬆️ Sync mit sw.js CACHE-Version halten
-
-// ══ SCORING ENGINE ═══════════════════════════════════════════════
-
-const dSum  = d => d.reduce((a,b)=>a+b,0);
-const dCnts = d => { const c={}; d.forEach(v=>c[v]=(c[v]||0)+1); return c; };
-const cVals = c => Object.values(c);
-const cEnts = c => Object.entries(c);
-
-const SCORE = {
-  einer:   d => d.filter(x=>x===1).reduce((a,b)=>a+b,0),
-  zweier:  d => d.filter(x=>x===2).reduce((a,b)=>a+b,0),
-  dreier:  d => d.filter(x=>x===3).reduce((a,b)=>a+b,0),
-  vierer:  d => d.filter(x=>x===4).reduce((a,b)=>a+b,0),
-  fuenfer: d => d.filter(x=>x===5).reduce((a,b)=>a+b,0),
-  sechser: d => d.filter(x=>x===6).reduce((a,b)=>a+b,0),
-  dreierpasch:  d => { const c=dCnts(d); return cVals(c).some(v=>v>=3)?dSum(d):null; },
-  viererpasch:  d => { const c=dCnts(d); return cVals(c).some(v=>v>=4)?dSum(d):null; },
-  zweiPaare:    d => { const p=cEnts(dCnts(d)).filter(([,v])=>v>=2); return p.length>=2?dSum(d):null; },
-  dreiPaare:    d => { const p=cEnts(dCnts(d)).filter(([,v])=>v>=2); return p.length>=3?35:null; },
-  zweiDreier:   d => { const t=cEnts(dCnts(d)).filter(([,v])=>v>=3); return t.length>=2?45:null; },
-  fullHouse: d => {
-    const e=cEnts(dCnts(d)), t=e.find(([,v])=>v>=3);
-    if (!t) return null;
-    return e.find(([k,v])=>k!==t[0]&&v>=2)?25:null;
-  },
-  grossesFullHouse: d => {
-    const e=cEnts(dCnts(d)), f=e.find(([,v])=>v>=4);
-    if (!f) return null;
-    return e.find(([k,v])=>k!==f[0]&&v>=2)?45:null;
-  },
-  kleineStrasse: d => {
-    const u=[...new Set(d)].sort((a,b)=>a-b);
-    for (let i=0;i<=u.length-4;i++)
-      if (u[i+1]-u[i]===1&&u[i+2]-u[i+1]===1&&u[i+3]-u[i+2]===1) return 30;
-    return null;
-  },
-  grosseStrasse: d => {
-    const u=[...new Set(d)].sort((a,b)=>a-b);
-    for (let i=0;i<=u.length-5;i++){
-      let ok=true; for(let j=0;j<4;j++) if(u[i+j+1]-u[i+j]!==1){ok=false;break;} if(ok) return 40;
-    } return null;
-  },
-  highway: d => {
-    const u=[...new Set(d)].sort((a,b)=>a-b);
-    if (u.length<6) return null;
-    for (let i=0;i<=u.length-6;i++){
-      let ok=true; for(let j=0;j<5;j++) if(u[i+j+1]-u[i+j]!==1){ok=false;break;} if(ok) return 50;
-    } return null;
-  },
-  kniffel:        d => cVals(dCnts(d)).some(v=>v>=5)?50:null,
-  kniffelExtreme: d => cVals(dCnts(d)).some(v=>v>=6)?75:null,
-  zehnMinus:      d => dSum(d)<=10?40:null,
-  dreiDreissig:   d => dSum(d)>=33?40:null,
-  chance:         d => dSum(d),
-  superChance:    d => dSum(d)*2,
-};
-
-// ══ HELPERS ══════════════════════════════════════════════════════
-
-const calc    = s => { const u=UPPER.reduce((x,c)=>x+(s[c.id]??0),0),b=u>=73?45:0,l=LOWER.reduce((x,c)=>x+(s[c.id]??0),0); return {u,b,uTotal:u+b,l,total:u+b+l}; };
-const isDone  = g => g.players.every(p=>ALL_IDS.every(id=>p.scores[id]!==undefined));
-const ls      = (k,d)=>{ try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch{return d;} };
-const lsSet   = (k,v)=>{ try{localStorage.setItem(k,JSON.stringify(v));}catch{} };
-const lsDel   = k   =>{ try{localStorage.removeItem(k);}catch{} };
-const pColor  = (name,roster,light=false)=>{ const i=roster.indexOf(name); return (light?PCL:PC)[i%5]; };
-const colW    = n => n<=2?80:n<=3?72:n<=4?65:n<=5?60:n<=6?55:n<=7?52:48;
-const avg     = arr => arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):0;
-const EMPTY_TURN = ()=>({dice:[0,0,0,0,0,0],held:[false,false,false,false,false,false],rollCount:0,chipUsed:false});
-const gameMode = g => g.mode || 'manual'; // backward-compat
-
-// ══ GITHUB ═══════════════════════════════════════════════════════
-
-const ghH = t=>({Authorization:`token ${t}`,Accept:'application/vnd.github.v3+json'});
+// ═══ GITHUB ═════════════════════════════════════════════════════
+const ghHeaders = t=>({Authorization:`token ${t}`,Accept:'application/vnd.github.v3+json'});
 async function ghRead(cfg) {
-  const r=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/gamedata.json`,{headers:ghH(cfg.token),cache:'no-store'});
-  if (r.status===404) return {data:null,sha:null};
-  if (!r.ok) throw new Error(`GitHub ${r.status}`);
+  const r=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/gamedata.json`,
+    {headers:ghHeaders(cfg.token),cache:'no-store'});
+  if(r.status===404) return {data:null,sha:null};
+  if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(`GitHub ${r.status}: ${j.message||'?'}`);}
   const j=await r.json();
-  return {data:JSON.parse(atob(j.content.replace(/\n/g,''))),sha:j.sha};
+  try{return {data:JSON.parse(atob(j.content.replace(/\n/g,''))),sha:j.sha};}catch{return{data:null,sha:j.sha};}
 }
 async function ghWrite(cfg,data,sha) {
   const body={message:'Kniffel update',content:btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))))};
-  if (sha) body.sha=sha;
-  const r=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/gamedata.json`,{method:'PUT',headers:{...ghH(cfg.token),'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});
-  if (!r.ok) throw new Error(`GitHub ${r.status}`);
+  if(sha) body.sha=sha;
+  const r=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/gamedata.json`,
+    {method:'PUT',cache:'no-store',headers:{...ghHeaders(cfg.token),'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(`GitHub ${r.status} (${cfg.owner}/${cfg.repo}): ${j.message||'?'}`);}
   return (await r.json()).content.sha;
 }
 function mergeData(local,remote) {
-  // Games: union merge (both sides contribute)
-  const games=[...(remote.games||[])], ids=new Set(games.map(g=>g.id));
-  for (const g of (local.games||[])) if (!ids.has(g.id)){games.push(g);ids.add(g.id);}
-
-  // Roster: local authoritative + new players from remote games (for stats).
-  // Blocklist (kx:deleted_roster) permanently excludes deleted players — even if
-  // they appear in old game history — so they never come back after sync.
-  const localSet = new Set(local.roster||[]);
-  const blocked  = new Set(ls('kx:deleted_roster',[]));
-  const remoteGameNames = new Set((remote.games||[]).flatMap(g=>(g.players||[]).map(p=>p.name)));
-  const roster = [...localSet];
-  for (const name of remoteGameNames)
-    if (!localSet.has(name) && !blocked.has(name)) roster.push(name);
-
+  const games=[...(remote.games||[])],ids=new Set(games.map(g=>g.id));
+  for(const g of(local.games||[]))if(!ids.has(g.id)){games.push(g);ids.add(g.id);}
+  // Local roster is authoritative; only add players from remote games not blocked
+  const localSet=new Set(local.roster||[]);
+  const blocked=new Set(ls('kx:deleted_roster',[]));
+  const remoteGameNames=new Set((remote.games||[]).flatMap(g=>(g.players||[]).map(p=>p.name)));
+  const roster=[...localSet];
+  for(const name of remoteGameNames)if(!localSet.has(name)&&!blocked.has(name))roster.push(name);
   return {games:games.sort((a,b)=>a.id.localeCompare(b.id)),roster};
 }
 
-// ══ APP ══════════════════════════════════════════════════════════
-
-// Migrate games without mode field → mark as 'manual'
-function migrateGames(games) {
-  const needsMigration = games.some(g => !g.mode);
-  if (!needsMigration) return games;
-  return games.map(g => g.mode ? g : {...g, mode:'manual'});
-}
-
+// ═══ APP ════════════════════════════════════════════════════════
 function App() {
-  const [screen, setScreen] = useState('home');
-  const [games,  setGames]  = useState(()=>{ const g=migrateGames(ls('kx:games',[])); lsSet('kx:games',g); return g; });
-  const [cur,    setCur]    = useState(()=>ls('kx:current',null));
-  const [roster, setRoster] = useState(()=>ls('kx:roster',[]));
-  const [stab,   setStab]   = useState('leaderboard');
-  const [statFilter, setStatFilter] = useState('all'); // 'all'|'manual'|'app'
-  const [sPlayer,setSPlayer]= useState(null);
-  const [sCmp,   setSCmp]   = useState([null,null]);
-  const [ghCfg,  setGhCfg]  = useState(()=>ls('kx:gh',null));
-  const [syncSt, setSyncSt] = useState('idle');
-  const [syncMsg,setSyncMsg]= useState('');
+  const [screen,  setScreen]  = useState('home');
+  const [games,   setGames]   = useState(()=>{ const g=migrateGames(ls('kx:games',[]));lsSet('kx:games',g);return g; });
+  const [cur,     setCur]     = useState(()=>ls('kx:current',null));
+  const [roster,  setRoster]  = useState(()=>ls('kx:roster',[]));
+  const [modal,   setModal]   = useState(null);
+  const [mVal,    setMVal]    = useState('');
+  const [stab,    setStab]    = useState('leaderboard');
+  const [statFilter,setStatFilter]=useState('all');
+  const [sPlayer, setSPlayer] = useState(null);
+  const [sCmp,    setSCmp]    = useState([null,null]);
+  const [ghCfg,   setGhCfg]   = useState(()=>ls('kx:gh',null));
+  const [syncSt,  setSyncSt]  = useState('idle');
+  const [syncMsg, setSyncMsg] = useState('');
+  const [appVersion,setAppVersion]=useState('?');
 
-  useEffect(()=>{ if(roster.length===0) setScreen('gameSetup'); else if(ghCfg?.token) doSync(); },[]);
+  useEffect(()=>{
+    if(roster.length===0) setScreen('gameSetup');
+    else if(ghCfg?.token) doSync();
+    getSwVersion().then(setAppVersion);
+  },[]);
 
-  const doSync = async cfg => {
-    const c=cfg||ghCfg; if(!c?.token) return;
+  const doSync=async cfg=>{
+    const c=cfg||ls('kx:gh',null); if(!c?.token)return;
     setSyncSt('syncing');
-    try {
-      const {data,sha}=await ghRead(c);
-      if(data){
-        const m=mergeData({games:ls('kx:games',[]),roster:ls('kx:roster',[])},data);
-        const migrated=migrateGames(m.games);
-        const hadUnmarked=migrated.some(g=>!m.games.find(og=>og.id===g.id)?.mode);
-        setGames(migrated); lsSet('kx:games',migrated);
-        setRoster(m.roster); lsSet('kx:roster',m.roster);
-        lsSet('kx:gh_sha',sha);
-        // Push back so remote JSON gets mode:'manual' on old games
-        if(hadUnmarked) pushGh(migrated,m.roster);
-      }
-      setSyncSt('ok'); setSyncMsg(new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}));
-    } catch(e){setSyncSt('error');setSyncMsg(e.message);}
-  };
-  const pushGh = async (g,r) => {
-    const c=ghCfg; if(!c?.token) return;
-    setSyncSt('syncing');
-    try {
-      const {sha}=await ghRead(c);
-      const newSha=await ghWrite(c,{version:1,roster:r,games:g},sha);
+    try{
+      const localGames=ls('kx:games',[]),localRoster=ls('kx:roster',[]);
+      const{data,sha}=await ghRead(c);
+      const merged=data?mergeData({games:migrateGames(localGames),roster:localRoster},data):{games:migrateGames(localGames),roster:localRoster};
+      setGames(merged.games);lsSet('kx:games',merged.games);
+      setRoster(merged.roster);lsSet('kx:roster',merged.roster);
+      const newSha=await ghWrite(c,{version:1,roster:merged.roster,games:merged.games},sha);
       lsSet('kx:gh_sha',newSha);
-      setSyncSt('ok'); setSyncMsg(new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}));
-    } catch(e){setSyncSt('error');setSyncMsg(e.message);}
+      setSyncSt('ok');setSyncMsg(new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}));
+    }catch(e){setSyncSt('error');setSyncMsg(e.message);}
+  };
+  const pushGh=async(g,r)=>{
+    const c=ls('kx:gh',null); if(!c?.token)return;
+    setSyncSt('syncing');
+    try{
+      const{sha,data}=await ghRead(c);
+      const merged=data?mergeData({games:g,roster:r},data):{games:g,roster:r};
+      const newSha=await ghWrite(c,{version:1,roster:merged.roster,games:merged.games},sha);
+      lsSet('kx:gh_sha',newSha);
+      if(data){setGames(merged.games);lsSet('kx:games',merged.games);}
+      setSyncSt('ok');setSyncMsg(new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}));
+    }catch(e){
+      if(e.message.includes('409')||e.message.includes('422')||e.message.includes('conflict')){
+        try{
+          const{sha:s2,data:d2}=await ghRead(c);
+          const m2=d2?mergeData({games:g,roster:r},d2):{games:g,roster:r};
+          const s3=await ghWrite(c,{version:1,roster:m2.roster,games:m2.games},s2);
+          lsSet('kx:gh_sha',s3);if(d2){setGames(m2.games);lsSet('kx:games',m2.games);}
+          setSyncSt('ok');setSyncMsg(new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}));return;
+        }catch(e2){setSyncSt('error');setSyncMsg(e2.message);return;}
+      }
+      setSyncSt('error');setSyncMsg(e.message);
+    }
   };
 
-  const saveGames    = (g,r) => { setGames(g); lsSet('kx:games',g); pushGh(g,r||roster); };
-  const saveRoster   = r     => { setRoster(r); lsSet('kx:roster',r); };
-  const saveCur      = g     => { setCur(g); g?lsSet('kx:current',g):lsDel('kx:current'); };
-  const deletePlayer = name  => {
-    const r = roster.filter(n=>n!==name);
-    saveRoster(r);
-    const blocked = [...new Set([...ls('kx:deleted_roster',[]), name])];
-    lsSet('kx:deleted_roster', blocked);
-    pushGh(games, r);
-  };
+  const saveGames   = (g,r)=>{setGames(g);lsSet('kx:games',g);pushGh(g,r||roster);};
+  const deleteGame  = id  =>{saveGames(games.filter(g=>g.id!==id),roster);};
+  const saveRoster  = r   =>{setRoster(r);lsSet('kx:roster',r);};
+  const saveCur     = g   =>{setCur(g);g?lsSet('kx:current',g):lsDel('kx:current');};
 
-  // Archive: remove player's scores from games but keep games for others.
-  // Player data saved locally so they can be restored.
-  const archivePlayer = name => {
-    const gameEntries = games
-      .filter(g => g.players.some(p => p.name === name))
-      .map(g => ({ gameId: g.id, entry: g.players.find(p => p.name === name) }));
-    const archive = ls('kx:archive', []);
-    lsSet('kx:archive', [...archive.filter(a => a.name !== name),
-      { name, archivedAt: new Date().toLocaleDateString('de-DE'), gameEntries }]);
-    const newGames  = games.map(g => ({...g, players: g.players.filter(p => p.name !== name)}))
-                           .filter(g => g.players.length > 0);
-    const newRoster = roster.filter(n => n !== name);
-    const blocked   = [...new Set([...ls('kx:deleted_roster',[]), name])];
-    lsSet('kx:deleted_roster', blocked);
+  const startGame=(selectedPlayers,mode)=>{
+    const newRoster=[...new Set([...roster,...selectedPlayers])];
     saveRoster(newRoster);
-    saveGames(newGames, newRoster);
-  };
-
-  // Hard delete: no games → just remove completely (no archive needed)
-  const hardDeletePlayer = name => {
-    const newRoster = roster.filter(n => n !== name);
-    const blocked   = [...new Set([...ls('kx:deleted_roster',[]), name])];
-    lsSet('kx:deleted_roster', blocked);
-    saveRoster(newRoster);
-    saveGames(games, newRoster);
-  };
-
-  const restorePlayer = name => {
-    const archive  = ls('kx:archive', []);
-    const archived = archive.find(a => a.name === name);
-    if (!archived) return;
-    const newGames = games.map(g => {
-      const found = archived.gameEntries.find(e => e.gameId === g.id);
-      if (!found || g.players.some(p => p.name === name)) return g;
-      return {...g, players: [...g.players, found.entry]};
-    });
-    lsSet('kx:archive', archive.filter(a => a.name !== name));
-    const blocked = ls('kx:deleted_roster', []).filter(n => n !== name);
-    lsSet('kx:deleted_roster', blocked);
-    const newRoster = [...roster, name];
-    saveRoster(newRoster);
-    saveGames(newGames, newRoster);
-  };
-
-  const startGame = (sel, mode) => {
-    const nr=[...new Set([...roster,...sel])]; saveRoster(nr);
-    const base = { id:Date.now().toString(), date:new Date().toLocaleDateString('de-DE'), mode,
-      players: sel.map(name=>({name,scores:{},chips:3})) };
-    saveCur(mode==='app'
-      ? {...base, currentPlayerIdx:0, turn:EMPTY_TURN()}
-      : base);
+    const base={id:Date.now().toString(),date:new Date().toLocaleDateString('de-DE'),mode,
+      players:selectedPlayers.map(name=>({name,scores:{},chips:3}))};
+    saveCur(mode==='app'?{...base,currentPlayerIdx:0,turn:EMPTY_TURN()}:base);
     setScreen('game');
   };
-  const finishGame = () => { saveGames([...games,cur],roster); saveCur(null); setScreen('home'); };
+  const finishGame =()=>{const ng=[...games,cur];saveGames(ng,roster);saveCur(null);setScreen('home');};
+  const cancelGame =()=>{saveCur(null);setScreen('home');};
 
-  const syncBadge = html`<span style=${{fontSize:11,color:syncSt==='ok'?C.green:syncSt==='error'?C.red:C.muted}}>
-    ${syncSt==='syncing'?'↻ Sync…':syncSt==='ok'?`☁ ${syncMsg}`:syncSt==='error'?'⚠ Sync-Fehler':''}
+  const deletePlayer=name=>{
+    if(!confirm(`"${name}" wirklich aus der Kartei löschen?`))return;
+    const r=roster.filter(n=>n!==name);saveRoster(r);pushGh(games,r);
+    const blocked=[...new Set([...ls('kx:deleted_roster',[]),name])];lsSet('kx:deleted_roster',blocked);
+  };
+  const renamePlayer=(oldName,newName)=>{
+    if(!newName.trim()||newName.trim()===oldName)return;
+    const n=newName.trim();
+    saveRoster(roster.map(r=>r===oldName?n:r));
+    saveGames(games.map(g=>({...g,players:g.players.map(p=>p.name===oldName?{...p,name:n}:p)})),roster.map(r=>r===oldName?n:r));
+  };
+  const archivePlayer=name=>{
+    const gameEntries=games.filter(g=>g.players.some(p=>p.name===name))
+      .map(g=>({gameId:g.id,entry:g.players.find(p=>p.name===name)}));
+    const archive=ls('kx:archive',[]);
+    lsSet('kx:archive',[...archive.filter(a=>a.name!==name),
+      {name,archivedAt:new Date().toLocaleDateString('de-DE'),gameEntries}]);
+    const newGames=games.map(g=>({...g,players:g.players.filter(p=>p.name!==name)})).filter(g=>g.players.length>0);
+    const newRoster=roster.filter(n=>n!==name);
+    const blocked=[...new Set([...ls('kx:deleted_roster',[]),name])];lsSet('kx:deleted_roster',blocked);
+    saveRoster(newRoster);saveGames(newGames,newRoster);
+  };
+  const hardDeletePlayer=name=>{
+    const newGames=games.filter(g=>!g.players.some(p=>p.name===name));
+    const newRoster=roster.filter(n=>n!==name);
+    const blocked=[...new Set([...ls('kx:deleted_roster',[]),name])];lsSet('kx:deleted_roster',blocked);
+    saveRoster(newRoster);saveGames(newGames,newRoster);
+  };
+  const restorePlayer=name=>{
+    const archive=ls('kx:archive',[]);
+    const archived=archive.find(a=>a.name===name);if(!archived)return;
+    const newGames=games.map(g=>{
+      const found=archived.gameEntries.find(e=>e.gameId===g.id);
+      if(!found||g.players.some(p=>p.name===name))return g;
+      return{...g,players:[...g.players,found.entry]};
+    });
+    lsSet('kx:archive',archive.filter(a=>a.name!==name));
+    lsSet('kx:deleted_roster',ls('kx:deleted_roster',[]).filter(n=>n!==name));
+    const newRoster=[...roster,name];saveRoster(newRoster);saveGames(newGames,newRoster);
+  };
+
+  const useChip  =(pIdx)=>{const c=cur.players[pIdx].chips??3;if(c<=0)return;saveCur({...cur,players:cur.players.map((p,i)=>i===pIdx?{...p,chips:c-1}:p)});};
+  const resetChip=(pIdx)=>{saveCur({...cur,players:cur.players.map((p,i)=>i===pIdx?{...p,chips:3}:p)});};
+
+  const openCell=(pIdx,cat)=>{
+    setModal({pIdx,cat});
+    const v=cur.players[pIdx].scores[cat.id];
+    const isUpper=UPPER.some(u=>u.id===cat.id);
+    if(v!==undefined&&isUpper) setMVal(String(Math.round(v/cat.n)));
+    else setMVal(v!==undefined?String(v):'');
+  };
+  const enterScore=val=>{const{pIdx,cat}=modal;saveCur({...cur,players:cur.players.map((p,i)=>i===pIdx?{...p,scores:{...p.scores,[cat.id]:val}}:p)});setModal(null);};
+  const clearCell=()=>{const{pIdx,cat}=modal;const scores={...cur.players[pIdx].scores};delete scores[cat.id];saveCur({...cur,players:cur.players.map((p,i)=>i===pIdx?{...p,scores}:p)});setModal(null);};
+
+  const syncBadge=html`<span style=${{fontSize:11,color:syncSt==='ok'?C.green:syncSt==='error'?C.red:C.muted}}>
+    ${syncSt==='syncing'?'↻ Sync…':syncSt==='ok'?`☁ ${syncMsg}`:syncSt==='error'
+      ?html`<span>⚠ ${syncMsg} <button onClick=${()=>doSync()} style=${{background:'none',border:`1px solid ${C.red}66`,borderRadius:6,color:C.red,cursor:'pointer',fontSize:10,padding:'1px 6px',marginLeft:4}}>🔄 Retry</button></span>`
+      :''}
   </span>`;
 
   return html`<div style=${{minHeight:'100vh',background:C.bg,color:C.text}}>
-    ${screen==='home'     && html`<${Home}       ...${{games,roster,cur,syncBadge,onNew:()=>setScreen('gameSetup'),onContinue:()=>setScreen('game'),onStats:()=>setScreen('stats'),onGh:()=>setScreen('gh')}}/>`}
-    ${screen==='gameSetup'&& html`<${GameSetup}  games=${games} roster=${roster} onStart=${startGame} onDeletePlayer=${deletePlayer} onBack=${()=>setScreen('home')}/>`}
-    ${screen==='game'&&cur&& (gameMode(cur)==='app'
-      ? html`<${DiceGame}   ...${{game:cur,roster,onUpdate:saveCur,onFinish:finishGame,onBack:()=>setScreen('home')}}/>`
-      : html`<${ManualGame} ...${{game:cur,roster,onUpdate:saveCur,onFinish:finishGame,onBack:()=>setScreen('home')}}/>`)}
-    ${screen==='stats'    && html`<${Stats}       ...${{games,roster,tab:stab,setTab:setStab,filter:statFilter,setFilter:setStatFilter,selPlayer:sPlayer,setSelPlayer:setSPlayer,cmp:sCmp,setCmp:setSCmp,onArchive:archivePlayer,onHardDelete:hardDeletePlayer,onRestore:restorePlayer,onBack:()=>setScreen('home')}}/>`}
-    ${screen==='gh'       && html`<${GhSettings}  initial=${ghCfg} onSave=${cfg=>{setGhCfg(cfg);lsSet('kx:gh',cfg);if(cfg)doSync(cfg);setScreen('home');}} onBack=${()=>setScreen('home')}/>`}
+    ${screen==='home'    &&html`<${Home} ...${{games,roster,cur,syncBadge,appVersion,onNew:()=>setScreen('gameSetup'),onContinue:()=>setScreen('game'),onStats:()=>setScreen('stats'),onGh:()=>setScreen('gh'),onRoster:()=>setScreen('roster')}}/>`}
+    ${screen==='gameSetup'&&html`<${GameSetup} roster=${roster} games=${games} onStart=${startGame} onBack=${()=>setScreen('home')}/>`}
+    ${screen==='game'&&cur&&(gameMode(cur)==='app'
+      ?html`<${DiceGame} ...${{game:cur,roster,onUpdate:saveCur,onFinish:finishGame,onCancel:cancelGame,onBack:()=>setScreen('home')}}/>`
+      :html`<div>
+        <${ManualGame} ...${{game:cur,roster,onCell:openCell,onFinish:finishGame,onCancel:cancelGame,onChipUse:useChip,onChipReset:resetChip,onBack:()=>setScreen('home')}}/>
+        ${modal&&html`<${Modal} ...${{modal,roster,val:mVal,setVal:setMVal,onScore:enterScore,onCross:()=>enterScore(0),onClear:clearCell,onClose:()=>setModal(null)}}/>`}
+      </div>`)}
+    ${screen==='stats'   &&html`<${Stats} ...${{games,roster,tab:stab,setTab:setStab,filter:statFilter,setFilter:setStatFilter,selPlayer:sPlayer,setSelPlayer:setSPlayer,cmp:sCmp,setCmp:setSCmp,onDeleteGame:deleteGame,onArchive:archivePlayer,onHardDelete:hardDeletePlayer,onRestore:restorePlayer,onBack:()=>setScreen('home')}}/>`}
+    ${screen==='gh'      &&html`<${GhSettings} initial=${ghCfg} onSave=${cfg=>{setGhCfg(cfg);lsSet('kx:gh',cfg);if(cfg)doSync(cfg);setScreen('home');}} onBack=${()=>setScreen('home')}/>`}
+    ${screen==='roster'  &&html`<${RosterManager} ...${{roster,games,onDelete:deletePlayer,onRename:renamePlayer,onBack:()=>setScreen('home')}}/>`}
   </div>`;
 }
 
-// ══ HOME ═════════════════════════════════════════════════════════
-
-function Home({games,roster,cur,syncBadge,onNew,onContinue,onStats,onGh}) {
+// ═══ HOME ════════════════════════════════════════════════════════
+function Home({games,roster,cur,syncBadge,appVersion,onNew,onContinue,onStats,onGh,onRoster}) {
   const recent=[...games].reverse().slice(0,4);
   return html`<div style=${{maxWidth:460,margin:'0 auto',padding:'0 16px 48px'}}>
     <div style=${{textAlign:'center',padding:'44px 0 26px'}}>
-      <div style=${{fontSize:40,fontWeight:900,letterSpacing:-1}}>Kniffel<span style=${{color:PC[0],fontStyle:'italic'}}>Extreme</span></div>
-      <div style=${{marginTop:5,fontSize:11,color:C.muted2}}>${VERSION}</div>
+      <div style=${{fontSize:40,fontWeight:900,letterSpacing:-1}}>Kniffel<span style=${{color:PC[0],fontStyle:'italic'}}>Extreme</span>
+        <span style=${{fontSize:13,color:C.muted2,fontWeight:400,fontStyle:'normal',marginLeft:6}}>v${appVersion}</span>
+      </div>
+      <div style=${{marginTop:4}}>${syncBadge}</div>
     </div>
     <div style=${{display:'flex',flexDirection:'column',gap:10}}>
-      ${cur && html`<${Btn} onClick=${onContinue} bg=${PC[0]}>
-        ${MODE_ICON[gameMode(cur)]} Spiel fortsetzen
-      </${Btn}>`}
+      ${cur&&html`<${Btn} onClick=${onContinue} bg=${PC[0]}>▶ Spiel fortsetzen <span style=${{fontSize:11,opacity:0.7}}>${MODE_ICON[gameMode(cur)]} ${MODE_LABEL[gameMode(cur)]}</span></${Btn}>`}
       <${Btn} onClick=${onNew} bg=${C.surface2} border=${C.border}>+ Neues Spiel</${Btn}>
-      <${Btn} onClick=${onStats} bg=${C.surface2} border=${C.border}>
-        📊 Statistiken <span style=${{fontSize:12,color:C.muted,marginLeft:4}}>${games.length} Spiele</span>
-      </${Btn}>
+      <${Btn} onClick=${onStats} bg=${C.surface2} border=${C.border}>📊 Statistiken <span style=${{fontSize:12,color:C.muted,marginLeft:4}}>${games.length} Spiele</span></${Btn}>
     </div>
-    <div style=${{display:'flex',justifyContent:'center',marginTop:8}}>
-      ${syncBadge}
+    <div style=${{display:'flex',justifyContent:'center',gap:20,marginTop:12}}>
+      <button onClick=${onGh}     style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:13}}>☁ GitHub Sync</button>
+      <button onClick=${onRoster} style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:13}}>👥 Spieler verwalten</button>
     </div>
-    <div style=${{display:'flex',justifyContent:'center',marginTop:4}}>
-      <button onClick=${onGh} style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:13}}>☁ GitHub Sync</button>
-    </div>
-    ${recent.length>0 && html`<div style=${{marginTop:28}}>
+    ${recent.length>0&&html`<div style=${{marginTop:28}}>
       <div style=${{fontSize:11,color:C.muted2,letterSpacing:2,textTransform:'uppercase',marginBottom:10,fontWeight:700}}>Letzte Spiele</div>
       ${recent.map(g=>{
-        const sc=g.players.map(p=>calc(p.scores).total), mx=Math.max(...sc);
-        const m=gameMode(g);
+        const sc=g.players.map(p=>calc(p.scores).total),mx=Math.max(...sc);
         return html`<div key=${g.id} style=${{padding:'10px 0',borderBottom:`1px solid ${C.border}`}}>
-          <div style=${{display:'flex',justifyContent:'space-between',marginBottom:4,alignItems:'center'}}>
+          <div style=${{display:'flex',justifyContent:'space-between',marginBottom:4}}>
             <span style=${{color:C.muted,fontSize:12}}>${g.date}</span>
-            <span style=${{fontSize:11,background:C.surface2,borderRadius:6,padding:'2px 6px',color:C.muted}}>${MODE_ICON[m]} ${MODE_LABEL[m]}</span>
+            <span style=${{fontSize:10,background:C.surface2,borderRadius:6,padding:'1px 7px',color:C.muted2}}>${MODE_ICON[gameMode(g)]} ${MODE_LABEL[gameMode(g)]}</span>
           </div>
           <div style=${{display:'flex',flexWrap:'wrap',gap:8}}>
             ${g.players.map((p,i)=>html`<span key=${i} style=${{fontSize:13,color:sc[i]===mx?PCL[i%5]:C.muted}}>
@@ -385,54 +366,28 @@ function Home({games,roster,cur,syncBadge,onNew,onContinue,onStats,onGh}) {
   </div>`;
 }
 
-// ══ GAME SETUP ═══════════════════════════════════════════════════
-
-function GameSetup({games,roster,onStart,onDeletePlayer,onBack}) {
-  const [selected,setSelected] = useState([]);
-  const [newName, setNewName]  = useState('');
-  const [editing, setEditing]  = useState(false);
-
+// ═══ GAME SETUP ══════════════════════════════════════════════════
+function GameSetup({roster,games,onStart,onBack}) {
+  const [selected,setSelected]=useState([]);
+  const [newName, setNewName] =useState('');
   // 5 most recently active players still in roster
-  const recentActive = [...new Set(
-    [...games].reverse().flatMap(g=>g.players.map(p=>p.name))
-  )].filter(n=>roster.includes(n)).slice(0,5);
-
-  // Remaining roster members not in the top-5
-  const remaining = roster.filter(n=>!recentActive.includes(n));
-
-  const toggle = name => {
-    if (editing) return;
-    selected.includes(name)
-      ? setSelected(selected.filter(n=>n!==name))
-      : selected.length<10 && setSelected([...selected,name]);
-  };
-  const addNew = () => {
-    const n=newName.trim(); if(!n||selected.length>=10) return;
-    if(!selected.includes(n)) setSelected([...selected,n]);
-    setNewName('');
-  };
-  const addFromDropdown = name => {
-    if(!name||selected.includes(name)||selected.length>=10) return;
-    setSelected([...selected,name]);
-  };
-  const deletePlayer = name => {
-    setSelected(sel=>sel.filter(n=>n!==name));
-    onDeletePlayer(name);
-  };
-
-  const ready = selected.length >= 2;
+  const recentActive=[...new Set([...games].reverse().flatMap(g=>g.players.map(p=>p.name)))].filter(n=>roster.includes(n)).slice(0,5);
+  const remaining=roster.filter(n=>!recentActive.includes(n));
+  const toggle=name=>selected.includes(name)?setSelected(selected.filter(n=>n!==name)):selected.length<10&&setSelected([...selected,name]);
+  const addNew=()=>{const n=newName.trim();if(!n||selected.length>=10)return;if(!selected.includes(n))setSelected([...selected,n]);setNewName('');};
+  const addFromDropdown=name=>{if(!name||selected.includes(name)||selected.length>=10)return;setSelected([...selected,name]);};
+  const ready=selected.length>=2;
 
   return html`<div style=${{maxWidth:460,margin:'0 auto',padding:'20px 16px 40px'}}>
     <div style=${{display:'flex',alignItems:'center',gap:12,marginBottom:24}}>
       ${roster.length>0&&html`<button onClick=${onBack} style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:20,padding:0}}>‹</button>`}
-      <span style=${{fontSize:22,fontWeight:800,flex:1}}>Neues Spiel</span>
+      <span style=${{fontSize:22,fontWeight:800}}>Neues Spiel</span>
     </div>
 
     ${selected.length>0&&html`<div style=${{marginBottom:20}}>
       <div style=${{fontSize:11,color:C.muted2,letterSpacing:2,textTransform:'uppercase',marginBottom:8,fontWeight:700}}>Ausgewählt (${selected.length}/10)</div>
       <div style=${{display:'flex',flexWrap:'wrap',gap:8}}>
-        ${selected.map((n,i)=>html`<div key=${n} style=${{display:'flex',alignItems:'center',gap:6,
-          background:C.surface2,border:`2px solid ${PC[i%5]}`,borderRadius:20,padding:'6px 12px'}}>
+        ${selected.map((n,i)=>html`<div key=${n} style=${{display:'flex',alignItems:'center',gap:6,background:C.surface2,border:`2px solid ${PC[i%5]}`,borderRadius:20,padding:'6px 12px'}}>
           <span style=${{color:PC[i%5],fontWeight:700,fontSize:12}}>${i+1}</span>
           <span style=${{fontSize:13}}>${n}</span>
           <button onClick=${()=>toggle(n)} style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:14,padding:'0 0 0 4px',lineHeight:1}}>×</button>
@@ -441,163 +396,93 @@ function GameSetup({games,roster,onStart,onDeletePlayer,onBack}) {
     </div>`}
 
     ${roster.length>0&&html`<div style=${{marginBottom:20}}>
-      <div style=${{display:'flex',alignItems:'center',marginBottom:8}}>
-        <div style=${{fontSize:11,color:C.muted2,letterSpacing:2,textTransform:'uppercase',fontWeight:700,flex:1}}>Bekannte Spieler</div>
-        <button onClick=${()=>setEditing(e=>!e)} style=${{
-          background:editing?'rgba(239,68,68,0.15)':C.surface2,
-          border:`1px solid ${editing?C.red:C.border}`,
-          borderRadius:10,padding:'3px 10px',
-          color:editing?C.red:C.muted,cursor:'pointer',fontSize:11,fontWeight:700,
-        }}>${editing?'✓ Fertig':'✎ Verwalten'}</button>
+      <div style=${{fontSize:11,color:C.muted2,letterSpacing:2,textTransform:'uppercase',marginBottom:8,fontWeight:700}}>Bekannte Spieler</div>
+      <div style=${{display:'flex',flexWrap:'wrap',gap:8,marginBottom:recentActive.length>0&&remaining.length>0?8:0}}>
+        ${recentActive.map(n=>{const idx=selected.indexOf(n),sel=idx>=0;return html`<button key=${n} onClick=${()=>toggle(n)} style=${{
+          background:sel?C.surface2:C.surface,border:`2px solid ${sel?PC[idx%5]:C.border}`,borderRadius:20,padding:'7px 14px',
+          color:sel?PC[idx%5]:C.muted,cursor:'pointer',fontSize:13,fontWeight:sel?700:400}}>
+          ${sel?`${idx+1}. `:''}${n}
+        </button>`;}) }
       </div>
-      ${editing&&html`<div style=${{fontSize:11,color:C.red,marginBottom:8,padding:'6px 10px',
-        background:'rgba(239,68,68,0.08)',borderRadius:8,border:`1px solid rgba(239,68,68,0.2)`}}>
-        ⚠ × löscht die Spielerin dauerhaft aus der Auswahl (Statistiken bleiben erhalten)
-      </div>`}
-
-      <!-- Top 5 recent as quick-select buttons -->
-      <div style=${{display:'flex',flexWrap:'wrap',gap:8}}>
-        ${recentActive.map(n=>{
-          const idx=selected.indexOf(n); const sel=idx>=0;
-          return html`<div key=${n} style=${{
-            display:'flex',alignItems:'center',gap:0,
-            background:sel&&!editing?C.surface2:C.surface,
-            border:`2px solid ${sel&&!editing?PC[idx%5]:editing?'rgba(239,68,68,0.4)':C.border}`,
-            borderRadius:20,overflow:'hidden',
-          }}>
-            <button onClick=${()=>toggle(n)} disabled=${editing} style=${{
-              background:'none',border:'none',
-              padding:editing?'7px 8px 7px 14px':'7px 14px',
-              color:sel&&!editing?PC[idx%5]:C.muted,
-              cursor:editing?'default':'pointer',fontSize:13,fontWeight:sel&&!editing?700:400,
-            }}>${sel&&!editing?`${idx+1}. `:''}${n}</button>
-            ${editing&&html`<button onClick=${()=>deletePlayer(n)} style=${{
-              background:'none',border:'none',borderLeft:`1px solid rgba(239,68,68,0.3)`,
-              padding:'7px 10px',color:C.red,cursor:'pointer',fontSize:14,lineHeight:1,
-            }}>×</button>`}
-          </div>`;
-        })}
-      </div>
-
-      <!-- Dropdown for remaining players -->
-      ${remaining.length>0&&html`<div style=${{marginTop:10,position:'relative'}}>
-        <select
-          value=""
-          onChange=${e=>{ addFromDropdown(e.target.value); e.target.value=''; }}
-          style=${{
-            width:'100%',background:C.surface,border:`1px solid ${C.border}`,
-            borderRadius:12,padding:'10px 36px 10px 14px',
-            color:C.muted,fontSize:13,outline:'none',cursor:'pointer',
-          }}>
-          <option value="">+ Weitere Spielerinnen…</option>
-          ${remaining.map(n=>html`<option key=${n} value=${n}
-            disabled=${selected.includes(n)||editing}
-          >${n}${selected.includes(n)?' ✓':''}</option>`)}
+      ${remaining.length>0&&html`<div style=${{position:'relative',marginTop:4}}>
+        <select value="" onChange=${e=>{addFromDropdown(e.target.value);e.target.value='';}}
+          style=${{width:'100%',background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:'10px 36px 10px 14px',color:C.muted,fontSize:13,outline:'none',cursor:'pointer'}}>
+          <option value="">+ Weitere Spieler…</option>
+          ${remaining.map(n=>html`<option key=${n} value=${n} disabled=${selected.includes(n)}>${n}${selected.includes(n)?' ✓':''}</option>`)}
         </select>
         <span style=${{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',color:C.muted,pointerEvents:'none'}}>▾</span>
-        ${editing&&html`<div style=${{marginTop:6,display:'flex',flexWrap:'wrap',gap:6}}>
-          ${remaining.map(n=>html`<div key=${n} style=${{
-            display:'flex',alignItems:'center',gap:0,
-            background:C.surface,border:`1px solid rgba(239,68,68,0.4)`,
-            borderRadius:20,overflow:'hidden',fontSize:13,
-          }}>
-            <span style=${{padding:'5px 10px 5px 12px',color:C.muted}}>${n}</span>
-            <button onClick=${()=>deletePlayer(n)} style=${{
-              background:'none',border:'none',borderLeft:`1px solid rgba(239,68,68,0.3)`,
-              padding:'5px 10px',color:C.red,cursor:'pointer',fontSize:14,lineHeight:1,
-            }}>×</button>
-          </div>`)}
-        </div>`}
       </div>`}
     </div>`}
 
-    <div style=${{marginBottom:28}}>
-      <div style=${{fontSize:11,color:C.muted2,letterSpacing:2,textTransform:'uppercase',marginBottom:8,fontWeight:700}}>Neuen Spieler</div>
+    <div style=${{marginBottom:24}}>
+      <div style=${{fontSize:11,color:C.muted2,letterSpacing:2,textTransform:'uppercase',marginBottom:8,fontWeight:700}}>Neuen Spieler hinzufügen</div>
       <div style=${{display:'flex',gap:8}}>
-        <input value=${newName} onChange=${e=>setNewName(e.target.value)} onKeyDown=${e=>e.key==='Enter'&&addNew()}
-          placeholder="Name eingeben…" style=${{flex:1,background:C.surface2,border:`1px solid ${C.border}`,
-          borderRadius:12,padding:'11px 14px',color:C.text,fontSize:15,outline:'none'}}/>
-        <button onClick=${addNew} disabled=${!newName.trim()||selected.length>=10}
-          style=${{background:PC[0],border:'none',borderRadius:12,padding:'11px 18px',color:'white',
-          cursor:'pointer',fontWeight:700,fontSize:15,opacity:(!newName.trim()||selected.length>=10)?0.4:1}}>+</button>
+        <input value=${newName} onChange=${e=>setNewName(e.target.value)} onKeyDown=${e=>e.key==='Enter'&&addNew()} placeholder="Name eingeben…"
+          style=${{flex:1,background:C.surface2,border:`1px solid ${C.border}`,borderRadius:12,padding:'11px 14px',color:C.text,fontSize:15,outline:'none'}}/>
+        <button onClick=${addNew} disabled=${!newName.trim()||selected.length>=10} style=${{background:PC[0],border:'none',borderRadius:12,padding:'11px 18px',color:'white',cursor:'pointer',fontWeight:700,fontSize:15,opacity:(!newName.trim()||selected.length>=10)?0.4:1}}>+</button>
       </div>
     </div>
 
-    <!-- MODE SELECTION -->
-    ${ready && html`<div>
-      <div style=${{fontSize:11,color:C.muted2,letterSpacing:2,textTransform:'uppercase',marginBottom:12,fontWeight:700,textAlign:'center'}}>
-        Wie möchtet ihr spielen?
-      </div>
-      <div style=${{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+    ${ready&&html`<div>
+      <div style=${{fontSize:11,color:C.muted2,letterSpacing:2,textTransform:'uppercase',marginBottom:10,fontWeight:700}}>Spielmodus wählen</div>
+      <div style=${{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
         <button onClick=${()=>onStart(selected,'manual')} style=${{
-          background:C.surface2,border:`2px solid ${C.border}`,borderRadius:16,
-          padding:'18px 12px',cursor:'pointer',color:C.text,textAlign:'center',
-          transition:'border-color 0.2s',
-        }}
-        onMouseEnter=${e=>{e.currentTarget.style.borderColor=PC[1];}}
-        onMouseLeave=${e=>{e.currentTarget.style.borderColor=C.border;}}>
-          <div style=${{fontSize:30,marginBottom:8}}>📝</div>
-          <div style=${{fontSize:14,fontWeight:800,marginBottom:4}}>Manuell</div>
-          <div style=${{fontSize:11,color:C.muted,lineHeight:1.4}}>Selbst würfeln & Punkte eintragen</div>
+          background:C.surface2,border:`2px solid ${C.border}`,borderRadius:16,padding:'18px 12px',
+          color:C.text,cursor:'pointer',textAlign:'center'}}>
+          <div style=${{fontSize:28,marginBottom:6}}>📝</div>
+          <div style=${{fontWeight:700,fontSize:14}}>Manuell</div>
+          <div style=${{fontSize:11,color:C.muted,marginTop:3}}>Würfelt ihr selbst,\neur tragt ein</div>
         </button>
-        <button onClick=${()=>onStart(selected,'app')} className="glow-btn" style=${{
-          border:'none',borderRadius:16,
-          padding:'18px 12px',cursor:'pointer',color:'white',textAlign:'center',
-          boxShadow:`0 4px 24px rgba(168,85,247,0.35)`,
-        }}>
-          <div style=${{fontSize:30,marginBottom:8}}>🎲</div>
-          <div style=${{fontSize:14,fontWeight:800,marginBottom:4}}>App-Modus</div>
-          <div style=${{fontSize:11,opacity:0.85,lineHeight:1.4}}>App würfelt & berechnet alles</div>
+        <button onClick=${()=>onStart(selected,'app')} style=${{
+          background:`linear-gradient(135deg,#3d1080,#7c3aed)`,border:`2px solid ${PC[0]}`,borderRadius:16,padding:'18px 12px',
+          color:'white',cursor:'pointer',textAlign:'center',boxShadow:`0 4px 20px rgba(168,85,247,0.3)`}}>
+          <div style=${{fontSize:28,marginBottom:6}}>🎲</div>
+          <div style=${{fontWeight:700,fontSize:14}}>App-Modus</div>
+          <div style=${{fontSize:11,opacity:0.8,marginTop:3}}>Würfeln per App,\nauto Punkte</div>
         </button>
       </div>
     </div>`}
-    ${!ready && html`<div style=${{color:C.muted,textAlign:'center',fontSize:13,padding:'20px 0'}}>Mindestens 2 Spieler wählen</div>`}
+    ${!ready&&html`<div style=${{textAlign:'center',color:C.muted,fontSize:13,padding:'8px 0'}}>Mindestens 2 Spieler auswählen</div>`}
   </div>`;
 }
 
-// ══ MANUAL GAME (Scoreboard) ══════════════════════════════════════
-
-function ManualGame({game,roster,onUpdate,onFinish,onBack}) {
-  const [modal,setModal] = useState(null);
-  const [mVal, setMVal]  = useState('');
-
-  const n   = game.players.length;
-  const sc  = game.players.map(p=>calc(p.scores));
-  const cw  = colW(n);
-  const done= isDone(game);
+// ═══ MANUAL GAME (scoreboard) ════════════════════════════════════
+function ManualGame({game,roster,onCell,onFinish,onCancel,onChipUse,onChipReset,onBack}) {
+  const n=game.players.length,sc=game.players.map(p=>calc(p.scores));
+  const cw=colW(n),done=isDone(game);
+  const [scoresVisible,setScoresVisible]=useState(true);
   const filled=game.players.reduce((s,p)=>s+ALL_IDS.filter(id=>p.scores[id]!==undefined).length,0);
-  const pct =Math.round(filled/(ALL_IDS.length*n)*100);
-
-  const cBg =(pi,id)=>{const v=game.players[pi].scores[id];return v===undefined?C.surface2:v===0?'#2d0a0a':'#1a1040';};
-  const cCol=(pi,id)=>{const v=game.players[pi].scores[id];return v===undefined?C.muted2:v===0?C.red:C.text;};
-  const cTxt=(pi,id)=>{const v=game.players[pi].scores[id];return v===undefined?'·':v===0?'—':String(v);};
+  const pct=Math.round(filled/(ALL_IDS.length*n)*100);
   const pCol =(pi)=>pColor(game.players[pi].name,roster);
   const pColL=(pi)=>pColor(game.players[pi].name,roster,true);
-
-  const gridCols=`120px repeat(${n}, ${cw}px)`;
-  const minW=120+n*cw+10;
-
-  const openCell=(pIdx,cat)=>{ setModal({pIdx,cat}); const v=game.players[pIdx].scores[cat.id]; setMVal(v!==undefined?String(v):''); };
-  const enterScore=val=>{ const {pIdx,cat}=modal; onUpdate({...game,players:game.players.map((p,i)=>i===pIdx?{...p,scores:{...p.scores,[cat.id]:val}}:p)}); setModal(null); };
-  const clearCell=()=>{ const {pIdx,cat}=modal; const scores={...game.players[pIdx].scores}; delete scores[cat.id]; onUpdate({...game,players:game.players.map((p,i)=>i===pIdx?{...p,scores}:p)}); setModal(null); };
+  const cBg=(pi,id)=>{const v=game.players[pi].scores[id],t=pCol(pi)+'1a';return v===undefined?t:v===0?'#5c1a1a':'#2a2490';};
+  const cCol=(pi,id)=>{const v=game.players[pi].scores[id];return v===undefined?C.muted2:v===0?C.red:C.text;};
+  const cTxt=(pi,id)=>{const v=game.players[pi].scores[id];return v===undefined?'·':v===0?'—':String(v);};
+  const gridCols=`120px repeat(${n},${cw}px)`,minW=120+n*cw+10;
 
   return html`<div style=${{maxWidth:520,margin:'0 auto'}}>
     <div style=${{position:'sticky',top:0,zIndex:10,background:C.bg,borderBottom:`1px solid ${C.border}`,padding:'10px 12px'}}>
       <div style=${{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
         <button onClick=${onBack} style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:20,padding:0}}>‹</button>
         <span style=${{fontSize:12,color:C.muted,flex:1}}>${game.date} <span style=${{background:C.surface2,borderRadius:4,padding:'1px 5px',marginLeft:4}}>📝 Manuell</span></span>
+        <button onClick=${()=>{if(confirm('Spiel wirklich abbrechen?'))onCancel();}} style=${{background:'none',border:`1px solid ${C.red}55`,borderRadius:8,color:C.red,cursor:'pointer',fontSize:11,padding:'3px 8px',opacity:0.7}}>✕ Abbrechen</button>
+        <button onClick=${()=>setScoresVisible(!scoresVisible)} style=${{background:'none',border:'none',cursor:'pointer',fontSize:16,padding:'0 4px',opacity:scoresVisible?1:0.4}}>👁</button>
         <span style=${{fontSize:11,color:C.muted2}}>${pct}%</span>
       </div>
       <div style=${{display:'flex',gap:8,overflowX:'auto',paddingBottom:4}}>
         ${game.players.map((p,i)=>html`<div key=${i} style=${{flexShrink:0,background:C.surface2,borderRadius:12,padding:'6px 12px',borderLeft:`3px solid ${pCol(i)}`,minWidth:90}}>
           <div style=${{fontSize:10,color:C.muted,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:80}}>${p.name}</div>
-          <div style=${{fontSize:22,fontWeight:900,color:pColL(i)}}>${sc[i].total}</div>
-          <div style=${{fontSize:9,color:C.muted}}>${sc[i].b?html`<span style=${{color:C.green}}>✓ Bonus</span>`:html`<span>−${73-sc[i].u}</span>`}</div>
+          <div style=${{fontSize:22,fontWeight:900,color:pColL(i)}}>${scoresVisible?sc[i].total:'??'}</div>
+          <div style=${{fontSize:9,color:C.muted}}>${scoresVisible?(sc[i].b?html`<span style=${{color:C.green}}>✓ Bonus</span>`:html`<span>−${73-sc[i].u}</span>`):'—'}</div>
+          <div style=${{display:'flex',gap:3,marginTop:4,alignItems:'center'}}>
+            ${(p.chips??3)===0
+              ?html`<button onClick=${()=>onChipReset(i)} style=${{background:'none',border:`1px solid ${pCol(i)}`,borderRadius:8,color:pCol(i),cursor:'pointer',fontSize:9,padding:'2px 5px',lineHeight:1}}>↺ 3</button>`
+              :[0,1,2].map(ci=>html`<button key=${ci} onClick=${()=>ci<(p.chips??3)&&onChipUse(i)} style=${{width:14,height:14,borderRadius:'50%',border:'none',cursor:ci<(p.chips??3)?'pointer':'default',background:ci<(p.chips??3)?pCol(i):'#2a2448',padding:0,flexShrink:0}}/>`)
+            }
+          </div>
         </div>`)}
       </div>
-      <div style=${{height:3,background:C.surface2,borderRadius:2,marginTop:8}}>
-        <div style=${{height:3,borderRadius:2,background:`linear-gradient(90deg,${PC[0]},${PC[1]})`,width:`${pct}%`,transition:'width 0.3s'}}/>
-      </div>
+      <div style=${{height:3,background:C.surface2,borderRadius:2,marginTop:8}}><div style=${{height:3,borderRadius:2,background:`linear-gradient(90deg,${PC[0]},${PC[1]})`,width:`${pct}%`,transition:'width 0.3s'}}/></div>
     </div>
 
     <div style=${{overflowX:'auto',padding:'8px 0 32px'}}>
@@ -608,20 +493,18 @@ function ManualGame({game,roster,onUpdate,onFinish,onBack}) {
           ${game.players.map((p,i)=>html`<div key=${i} style=${{textAlign:'center',fontSize:10,fontWeight:700,color:pCol(i),overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>${p.name}</div>`)}
         </div>
         ${UPPER.map(cat=>html`<${GRow} key=${cat.id} gridCols=${gridCols} label=${html`<span style=${{fontSize:14}}>${cat.face} ${cat.label}</span>`} sub=${`nur ${cat.label}`}>
-          ${game.players.map((_,i)=>html`<${GCell} key=${i} bg=${cBg(i,cat.id)} color=${cCol(i,cat.id)} cw=${cw} onClick=${()=>openCell(i,cat)}>${cTxt(i,cat.id)}</${GCell}>`)}
-        </${GRow}>`)}
-        <${GTot} gridCols=${gridCols} label="Summe"              vals=${sc.map(s=>s.u)}/>
-        <${GTot} gridCols=${gridCols} label="Bonus (ab 73→+45)"  vals=${sc.map(s=>s.b)} sub=${sc.map(s=>s.b?'✓':`-${73-s.u}`)} subC=${sc.map(s=>s.b?C.green:C.muted)}/>
-        <${GTot} gridCols=${gridCols} label="Oberer Teil"        vals=${sc.map(s=>s.uTotal)} hi=${true}/>
+          ${game.players.map((_,i)=>html`<${GCell} key=${i} bg=${cBg(i,cat.id)} color=${cCol(i,cat.id)} cw=${cw} onClick=${()=>onCell(i,cat)}>${cTxt(i,cat.id)}</${GCell}>`)}</${GRow}>`)}
+        <${GTot} gridCols=${gridCols} label="Summe"             vals=${sc.map(s=>s.u)} hidden=${!scoresVisible}/>
+        <${GTot} gridCols=${gridCols} label="Bonus (ab 73→+45)" vals=${sc.map(s=>s.b)} sub=${sc.map(s=>s.b?'✓':`-${73-s.u}`)} subC=${sc.map(s=>s.b?C.green:C.muted)} hidden=${!scoresVisible}/>
+        <${GTot} gridCols=${gridCols} label="Oberer Teil"       vals=${sc.map(s=>s.uTotal)} hi=${true} hidden=${!scoresVisible}/>
         <${GSec} label="UNTERER TEIL"/>
         ${LOWER.map(cat=>html`<${GRow} key=${cat.id} gridCols=${gridCols} label=${cat.label} sub=${cat.t==='fix'?`${cat.pts} Pkt`:cat.desc}>
-          ${game.players.map((_,i)=>html`<${GCell} key=${i} bg=${cBg(i,cat.id)} color=${cCol(i,cat.id)} cw=${cw} onClick=${()=>openCell(i,cat)}>${cTxt(i,cat.id)}</${GCell}>`)}
-        </${GRow}>`)}
-        <${GTot} gridCols=${gridCols} label="Unterer Teil"  vals=${sc.map(s=>s.l)}/>
-        <${GTot} gridCols=${gridCols} label="Oberer Teil"   vals=${sc.map(s=>s.uTotal)}/>
-        <${GTot} gridCols=${gridCols} label="ENDSUMME"      vals=${sc.map(s=>s.total)} hi=${true} big=${true} pColors=${game.players.map((_,i)=>pColL(i))}/>
+          ${game.players.map((_,i)=>html`<${GCell} key=${i} bg=${cBg(i,cat.id)} color=${cCol(i,cat.id)} cw=${cw} onClick=${()=>onCell(i,cat)}>${cTxt(i,cat.id)}</${GCell}>`)}</${GRow}>`)}
+        <${GTot} gridCols=${gridCols} label="Unterer Teil"  vals=${sc.map(s=>s.l)} hidden=${!scoresVisible}/>
+        <${GTot} gridCols=${gridCols} label="Oberer Teil"   vals=${sc.map(s=>s.uTotal)} hidden=${!scoresVisible}/>
+        <${GTot} gridCols=${gridCols} label="ENDSUMME"      vals=${sc.map(s=>s.total)} hi=${true} big=${true} pColors=${game.players.map((_,i)=>pColL(i))} hidden=${!scoresVisible}/>
 
-        ${done && html`<div style=${{marginTop:20,background:'linear-gradient(135deg,#2d1060,#1a0a30)',borderRadius:20,padding:'20px',textAlign:'center',border:`1px solid ${PC[0]}`}}>
+        ${done&&html`<div style=${{marginTop:20,background:'linear-gradient(135deg,#3d2080,#2a1460)',borderRadius:20,padding:'20px',textAlign:'center',border:`1px solid ${PC[0]}`}}>
           <div style=${{fontSize:26}}>🎉</div>
           <div style=${{fontSize:20,fontWeight:900,marginTop:6}}>
             ${(()=>{const mx=Math.max(...sc.map(s=>s.total));const w=game.players.filter((_,i)=>sc[i].total===mx);return w.length===1?`${w[0].name} gewinnt!`:'Unentschieden!';})()}
@@ -633,65 +516,66 @@ function ManualGame({game,roster,onUpdate,onFinish,onBack}) {
         </div>`}
       </div>
     </div>
-
-    ${modal && html`<${ManualModal} ...${{modal,roster,val:mVal,setVal:setMVal,onScore:enterScore,onCross:()=>enterScore(0),onClear:clearCell,onClose:()=>setModal(null)}}/>`}
   </div>`;
 }
 
-function GSec({label}) {
-  return html`<div style=${{fontSize:10,fontWeight:700,color:C.muted,letterSpacing:2,textTransform:'uppercase',padding:'14px 0 6px',borderTop:`1px solid ${C.border}`,marginTop:6}}>${label}</div>`;
-}
-function GRow({gridCols,label,sub,children}) {
-  return html`<div style=${{display:'grid',gridTemplateColumns:gridCols,gap:4,marginBottom:4,alignItems:'center'}}>
-    <div><div style=${{fontSize:12,fontWeight:600}}>${label}</div>${sub&&html`<div style=${{fontSize:9,color:C.muted}}>${sub}</div>`}</div>
-    ${children}
-  </div>`;
-}
-function GCell({bg,color,onClick,cw,children}) {
-  return html`<div onClick=${onClick} style=${{background:bg,borderRadius:9,height:38,width:`${cw}px`,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:13,fontWeight:700,color,border:`1px solid ${C.border}`}}>${children}</div>`;
-}
-function GTot({gridCols,label,vals,sub,subC,hi,big,pColors}) {
-  return html`<div style=${{display:'grid',gridTemplateColumns:gridCols,gap:4,marginBottom:3,alignItems:'center',background:hi?C.surface2:'transparent',borderRadius:9,padding:hi?'5px 6px':'3px 6px'}}>
-    <div style=${{fontSize:hi?11:10,color:hi?C.text:C.muted,fontWeight:hi?700:400}}>${label}</div>
-    ${vals.map((v,i)=>html`<div key=${i} style=${{textAlign:'center',fontSize:big?20:hi?13:12,fontWeight:hi||big?800:500,color:big?(pColors?.[i]||C.text):hi?C.text:C.muted}}>
-      ${v}${sub&&html`<div style=${{fontSize:9,color:subC?.[i]??C.muted,fontWeight:400}}>${sub[i]}</div>`}
-    </div>`)}
-  </div>`;
-}
+function GSec({label}){return html`<div style=${{fontSize:10,fontWeight:700,color:C.muted,letterSpacing:2,textTransform:'uppercase',padding:'14px 0 6px',borderTop:`1px solid ${C.border}`,marginTop:6}}>${label}</div>`;}
+function GRow({gridCols,label,sub,children}){return html`<div style=${{display:'grid',gridTemplateColumns:gridCols,gap:4,marginBottom:4,alignItems:'center'}}><div><div style=${{fontSize:12,fontWeight:600}}>${label}</div>${sub&&html`<div style=${{fontSize:9,color:C.muted}}>${sub}</div>`}</div>${children}</div>`;}
+function GCell({bg,color,onClick,cw,children}){return html`<div onClick=${onClick} style=${{background:bg,borderRadius:9,height:38,width:`${cw}px`,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:13,fontWeight:700,color,border:`1px solid ${C.border}`}}>${children}</div>`;}
+function GTot({gridCols,label,vals,sub,subC,hi,big,pColors,hidden}){return html`<div style=${{display:'grid',gridTemplateColumns:gridCols,gap:4,marginBottom:3,alignItems:'center',background:hi?C.surface2:'transparent',borderRadius:9,padding:hi?'5px 6px':'3px 6px'}}>
+  <div style=${{fontSize:hi?11:10,color:hi?C.text:C.muted,fontWeight:hi?700:400}}>${label}</div>
+  ${vals.map((v,i)=>html`<div key=${i} style=${{textAlign:'center',fontSize:big?20:hi?13:12,fontWeight:hi||big?800:500,color:big?(pColors?.[i]||C.text):hi?C.text:C.muted,opacity:hidden?0.25:1}}>
+    ${hidden?'?':v}${sub&&!hidden&&html`<div style=${{fontSize:9,color:subC?.[i]??C.muted,fontWeight:400}}>${sub[i]}</div>`}
+  </div>`)}
+</div>`;}
 
-function ManualModal({modal,roster,val,setVal,onScore,onCross,onClear,onClose}) {
+// ═══ MODAL (for manual game) ════════════════════════════════════
+function Modal({modal,roster,val,setVal,onScore,onCross,onClear,onClose}) {
   const {pIdx,cat}=modal;
-  const pc=pColor(modal.cat&&window._curGame?.players[pIdx]?.name,roster)||PC[pIdx%5];
+  const isUpper=UPPER.some(u=>u.id===cat.id);
+  const count=isUpper?(val===''?0:Number(val)):null;
+  const computed=isUpper?count*cat.n:null;
+  const pc=pColor(null,roster)||PC[pIdx%5]; // color by player position
+
   return html`<div onClick=${onClose} style=${{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'flex-end',justifyContent:'center',zIndex:50}}>
-    <div onClick=${e=>e.stopPropagation()} className="slide-up" style=${{background:C.surface,borderRadius:'22px 22px 0 0',width:'100%',maxWidth:460,padding:'20px 20px 40px',borderTop:`1px solid ${C.border}`}}>
+    <div onClick=${e=>e.stopPropagation()} style=${{background:C.surface,borderRadius:'22px 22px 0 0',width:'100%',maxWidth:460,padding:'20px 20px 40px',borderTop:`1px solid ${C.border}`}}>
       <div style=${{width:36,height:4,background:C.border,borderRadius:2,margin:'0 auto 18px'}}/>
-      <div style=${{textAlign:'center',marginBottom:18}}>
-        <div style=${{fontSize:18,fontWeight:800}}>${cat.label}</div>
-        <div style=${{fontSize:12,color:C.muted,marginTop:3}}>${cat.t==='fix'?`${cat.pts} Punkte bei Erfolg`:cat.t==='super'?'alle Augen × 2 — Endpunktzahl eingeben':'alle Augen zählen'}</div>
+      <div style=${{textAlign:'center',marginBottom:12}}>
+        <div style=${{fontSize:20,fontWeight:800}}>${isUpper?cat.face+' ':''} ${cat.label}</div>
+        ${cat.rules&&html`<div style=${{fontSize:12,color:C.muted,marginTop:6,lineHeight:1.5,background:C.surface2,borderRadius:10,padding:'8px 12px',textAlign:'left'}}>📖 ${cat.rules}</div>`}
       </div>
-      ${cat.t==='fix'
-        ?html`<div style=${{display:'flex',flexDirection:'column',gap:10}}>
-            <${Btn} onClick=${()=>onScore(cat.pts)} bg="#14532d">✓ Erreicht — ${cat.pts} Punkte</${Btn}>
-            <${Btn} onClick=${onCross} bg="#7f1d1d">✕ Streichen — 0 Punkte</${Btn}>
-          </div>`
-        :html`<div style=${{display:'flex',flexDirection:'column',gap:10}}>
-            <input type="number" min="0" value=${val} onChange=${e=>setVal(e.target.value)} autoFocus
-              style=${{background:C.surface2,border:`2px solid ${pc}`,borderRadius:14,padding:'14px',color:C.text,fontSize:24,textAlign:'center',outline:'none',width:'100%'}} placeholder="Punkte"/>
-            <${Btn} onClick=${()=>val!==''&&onScore(Number(val))} bg=${pc} disabled=${val===''}>✓ Eintragen</${Btn}>
-            <${Btn} onClick=${onCross} bg="#7f1d1d">✕ Streichen — 0 Punkte</${Btn}>
-          </div>`}
-      ${val!==''&&html`<button onClick=${onClear} style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:12,marginTop:10,display:'block',width:'100%',textAlign:'center'}}>Eintrag löschen</button>`}
+      ${isUpper&&html`<div style=${{display:'flex',flexDirection:'column',gap:12,marginTop:4}}>
+        <div style=${{fontSize:12,color:C.muted,textAlign:'center'}}>Wie viele ${cat.label} hast du gewürfelt?</div>
+        <div style=${{display:'flex',alignItems:'center',justifyContent:'center',gap:16}}>
+          <button onClick=${()=>setVal(String(Math.max(0,(val===''?0:Number(val))-1)))} style=${{width:48,height:48,borderRadius:'50%',background:C.surface2,border:`1px solid ${C.border}`,color:C.text,fontSize:24,cursor:'pointer',fontWeight:700}}>−</button>
+          <div style=${{textAlign:'center',minWidth:60}}>
+            <div style=${{fontSize:40,fontWeight:900,color:PC[pIdx%5]}}>${val===''?0:val}</div>
+            <div style=${{fontSize:11,color:C.muted}}>Würfel</div>
+          </div>
+          <button onClick=${()=>setVal(String(Math.min(6,(val===''?0:Number(val))+1)))} style=${{width:48,height:48,borderRadius:'50%',background:C.surface2,border:`1px solid ${C.border}`,color:C.text,fontSize:24,cursor:'pointer',fontWeight:700}}>+</button>
+        </div>
+        <div style=${{textAlign:'center',fontSize:18,fontWeight:700,color:PC[pIdx%5]}}>= ${computed} Punkte</div>
+        <${Btn} onClick=${()=>onScore(computed)} bg=${PC[pIdx%5]} disabled=${count===0}>✓ Eintragen — ${computed} Punkte</${Btn}>
+        <${Btn} onClick=${onCross} bg="#7f1d1d">✕ Streichen — 0 Punkte</${Btn}>
+      </div>`}
+      ${!isUpper&&cat.t==='fix'&&html`<div style=${{display:'flex',flexDirection:'column',gap:10}}>
+        <${Btn} onClick=${()=>onScore(cat.pts)} bg="#14532d">✓ Erreicht — ${cat.pts} Punkte</${Btn}>
+        <${Btn} onClick=${onCross} bg="#7f1d1d">✕ Streichen — 0 Punkte</${Btn}>
+      </div>`}
+      ${!isUpper&&cat.t!=='fix'&&html`<div style=${{display:'flex',flexDirection:'column',gap:10}}>
+        <div style=${{fontSize:12,color:C.muted,textAlign:'center'}}>${cat.t==='super'?'Endpunktzahl eingeben (Augen × 2)':'Summe aller Augen eingeben'}</div>
+        <input type="number" min="0" value=${val} onChange=${e=>setVal(e.target.value)} autoFocus
+          style=${{background:C.surface2,border:`2px solid ${PC[pIdx%5]}`,borderRadius:14,padding:'14px',color:C.text,fontSize:24,textAlign:'center',outline:'none',width:'100%'}} placeholder="Punkte"/>
+        <${Btn} onClick=${()=>val!==''&&onScore(Number(val))} bg=${PC[pIdx%5]} disabled=${val===''}>✓ Eintragen</${Btn}>
+        <${Btn} onClick=${onCross} bg="#7f1d1d">✕ Streichen — 0 Punkte</${Btn}>
+      </div>`}
+      ${((isUpper&&count>0)||((!isUpper)&&val!==''))&&html`<button onClick=${onClear} style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:12,marginTop:10,display:'block',width:'100%',textAlign:'center'}}>Eintrag löschen</button>`}
     </div>
   </div>`;
 }
 
-// ══ DICE GAME (App-Modus) ═════════════════════════════════════════
-
-const PIP_POS = {
-  1:[[27,27]], 2:[[16,16],[38,38]], 3:[[38,16],[27,27],[16,38]],
-  4:[[16,16],[38,16],[16,38],[38,38]], 5:[[16,16],[38,16],[27,27],[16,38],[38,38]],
-  6:[[16,13],[38,13],[16,27],[38,27],[16,41],[38,41]],
-};
+// ═══ DICE GAME ══════════════════════════════════════════════════
+const PIP_POS={1:[[27,27]],2:[[16,16],[38,38]],3:[[38,16],[27,27],[16,38]],4:[[16,16],[38,16],[16,38],[38,38]],5:[[16,16],[38,16],[27,27],[16,38],[38,38]],6:[[16,13],[38,13],[16,27],[38,27],[16,41],[38,41]]};
 
 function Die({value,held,rolled,isDten,canHold,onToggle}) {
   const isFirst=useRef(true);
@@ -705,42 +589,34 @@ function Die({value,held,rolled,isDten,canHold,onToggle}) {
     display:'flex',alignItems:'center',justifyContent:'center',cursor:canHold?'pointer':'default',
     position:'relative',userSelect:'none',opacity:rolled?1:0.2,
     boxShadow:held?(isDten?`0 0 0 3px #ef4444,inset 0 2px 8px rgba(0,0,0,0.5)`:`0 0 0 3px ${PC[0]},inset 0 2px 8px rgba(0,0,0,0.5)`):'0 3px 10px rgba(0,0,0,0.4)',
-    transition:'border-color 0.15s,background 0.15s,box-shadow 0.15s,opacity 0.2s',
-  }}>
+    transition:'border-color 0.15s,background 0.15s,box-shadow 0.15s,opacity 0.2s'}}>
     ${isDten?html`<span style=${{fontSize:20,fontWeight:900,color:held?'#fca5a5':'white',lineHeight:1}}>${rolled?value:'?'}</span>`
             :html`<svg viewBox="0 0 54 54" width="52" height="52" style=${{position:'absolute',top:0,left:0}}>
-                ${pips.map(([cx,cy],i)=>html`<circle key=${i} cx=${cx} cy=${cy} r="4.5" fill="white"/>`)}
-              </svg>`}
-    ${isDten&&rolled&&html`<div style=${{position:'absolute',bottom:2,left:0,right:0,textAlign:'center',fontSize:7,color:'#ef4444',fontWeight:700,letterSpacing:0.5}}>D10</div>`}
-    ${held&&html`<div style=${{position:'absolute',top:-6,right:-6,background:isDten?'#ef4444':PC[0],borderRadius:'50%',width:16,height:16,display:'flex',alignItems:'center',justifyContent:'center',fontSize:8,color:'white',zIndex:2,boxShadow:'0 1px 4px rgba(0,0,0,0.5)',fontWeight:900}}>✓</div>`}
+                ${pips.map(([cx,cy],i)=>html`<circle key=${i} cx=${cx} cy=${cy} r="4.5" fill="white"/>`)}</svg>`}
+    ${isDten&&rolled&&html`<div style=${{position:'absolute',bottom:2,left:0,right:0,textAlign:'center',fontSize:7,color:'#ef4444',fontWeight:700}}>D10</div>`}
+    ${held&&html`<div style=${{position:'absolute',top:-6,right:-6,background:isDten?'#ef4444':PC[0],borderRadius:'50%',width:16,height:16,display:'flex',alignItems:'center',justifyContent:'center',fontSize:8,color:'white',zIndex:2,fontWeight:900}}>✓</div>`}
   </div>`;
 }
 
-function CatRow({label,sub,scored,scoredVal,pot,good,onClick}) {
-  return html`<div onClick=${onClick} style=${{
-    display:'flex',alignItems:'center',gap:8,padding:'8px 12px',marginBottom:3,borderRadius:12,
-    background:scored?'transparent':good?'rgba(168,85,247,0.08)':'transparent',
-    border:`1px solid ${scored?C.border:good?'rgba(168,85,247,0.3)':C.border}`,
-    cursor:scored?'default':'pointer',opacity:scored?0.4:1,minHeight:44,
-  }}>
+function CatRow({label,sub,scored,scoredVal,pot,good,onClick}){
+  return html`<div onClick=${onClick} style=${{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',marginBottom:3,borderRadius:12,background:scored?'transparent':good?'rgba(168,85,247,0.08)':'transparent',border:`1px solid ${scored?C.border:good?'rgba(168,85,247,0.3)':C.border}`,cursor:scored?'default':'pointer',opacity:scored?0.4:1,minHeight:44}}>
     <div style=${{flex:1,minWidth:0}}>
       <div style=${{fontSize:13,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>${label}</div>
       ${sub&&html`<div style=${{fontSize:9,color:C.muted}}>${sub}</div>`}
     </div>
     <div style=${{display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
-      <span style=${{fontSize:15,fontWeight:900,color:scored?C.muted:good?PCL[0]:C.muted2,minWidth:32,textAlign:'right'}}>
-        ${scored?scoredVal:good?pot:'—'}
-      </span>
+      <span style=${{fontSize:15,fontWeight:900,color:scored?C.muted:good?PCL[0]:C.muted2,minWidth:32,textAlign:'right'}}>${scored?scoredVal:good?pot:'—'}</span>
       ${!scored&&html`<span style=${{width:20,height:20,borderRadius:'50%',background:good?PC[0]:'transparent',border:`1px solid ${good?PC[0]:C.border}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:'white',flexShrink:0}}>${good?'▶':'✕'}</span>`}
     </div>
   </div>`;
 }
 
-function DiceGame({game,roster,onUpdate,onFinish,onBack}) {
-  const [scoreModal,setScoreModal]=useState(null);
-  const [rolling,setRolling]=useState(false);
-  const [rollKey,setRollKey]=useState(0);
-  const [lastScore,setLastScore]=useState(null);
+function DiceGame({game,roster,onUpdate,onFinish,onCancel,onBack}) {
+  const [scoreModal,  setScoreModal]  = useState(null);
+  const [rolling,     setRolling]     = useState(false);
+  const [rollKey,     setRollKey]     = useState(0);
+  const [lastScore,   setLastScore]   = useState(null);
+  const [hideScores,  setHideScores]  = useState(false);
 
   const player=game.players[game.currentPlayerIdx];
   const turn=game.turn;
@@ -749,119 +625,105 @@ function DiceGame({game,roster,onUpdate,onFinish,onBack}) {
   const hasRolled=turn.rollCount>0;
   const mustScore=turn.rollCount>=maxRolls;
   const done=isDone(game);
+  const sc=calc(player.scores);
+  const pColL=pColor(player.name,roster,true);
+  const pCol =pColor(player.name,roster);
 
   const potentials={};
-  if(hasRolled) [...UPPER,...LOWER].forEach(cat=>{
-    if(player.scores[cat.id]===undefined) potentials[cat.id]=SCORE[cat.id](turn.dice);
+  if(hasRolled)[...UPPER,...LOWER].forEach(cat=>{
+    if(player.scores[cat.id]===undefined)potentials[cat.id]=SCORE[cat.id](turn.dice);
   });
 
   const doRoll=useCallback(()=>{
-    if(!canRoll||rolling) return;
+    if(!canRoll||rolling)return;
     setRolling(true);
     const newDice=turn.dice.map((d,i)=>{
-      if(turn.rollCount>0&&turn.held[i]) return d;
+      if(turn.rollCount>0&&turn.held[i])return d;
       return i===5?Math.floor(Math.random()*10):Math.floor(Math.random()*6)+1;
     });
     setTimeout(()=>{
-      onUpdate({...game,turn:{...turn,dice:newDice,rollCount:turn.rollCount+1,
-        held:turn.rollCount===0?[false,false,false,false,false,false]:turn.held}});
-      setRollKey(k=>k+1); setRolling(false);
+      onUpdate({...game,turn:{...turn,dice:newDice,rollCount:turn.rollCount+1,held:turn.rollCount===0?[false,false,false,false,false,false]:turn.held}});
+      setRollKey(k=>k+1);setRolling(false);
     },380);
   },[game,turn,canRoll,rolling]);
 
-  const toggleHold=i=>{ if(!hasRolled||mustScore) return; const h=[...turn.held];h[i]=!h[i]; onUpdate({...game,turn:{...turn,held:h}}); };
-  const useChip=()=>{ if(player.chips<=0||turn.chipUsed||turn.rollCount<3) return; const np=game.players.map((p,i)=>i===game.currentPlayerIdx?{...p,chips:p.chips-1}:p); onUpdate({...game,players:np,turn:{...turn,chipUsed:true}}); };
+  const toggleHold=i=>{if(!hasRolled||mustScore)return;const h=[...turn.held];h[i]=!h[i];onUpdate({...game,turn:{...turn,held:h}});};
+  const useChip=()=>{if(player.chips<=0||turn.chipUsed||turn.rollCount<3)return;const np=game.players.map((p,i)=>i===game.currentPlayerIdx?{...p,chips:p.chips-1}:p);onUpdate({...game,players:np,turn:{...turn,chipUsed:true}});};
 
   const scoreCategory=(catId,pts)=>{
     const np=game.players.map((p,i)=>i===game.currentPlayerIdx?{...p,scores:{...p.scores,[catId]:pts}}:p);
     const nextIdx=(game.currentPlayerIdx+1)%game.players.length;
     onUpdate({...game,players:np,currentPlayerIdx:nextIdx,turn:EMPTY_TURN()});
-    setLastScore({pts}); setTimeout(()=>setLastScore(null),2000); setScoreModal(null);
+    setLastScore({pts});setTimeout(()=>setLastScore(null),2000);setScoreModal(null);
   };
 
-  const pCol=pColor(player.name,roster); const pColL=pColor(player.name,roster,true);
-  const sc=calc(player.scores);
   const Toast=lastScore&&html`<div className="pop-in" style=${{position:'fixed',top:80,left:'50%',transform:'translateX(-50%)',background:C.surface,border:`1px solid ${PC[0]}`,borderRadius:14,padding:'10px 20px',fontSize:14,fontWeight:700,zIndex:100,color:lastScore.pts>0?C.green:C.red,whiteSpace:'nowrap',boxShadow:'0 8px 32px rgba(0,0,0,0.5)'}}>${lastScore.pts>0?`+${lastScore.pts} Punkte! 🎉`:'Gestrichen ✕'}</div>`;
 
   return html`<div style=${{maxWidth:460,margin:'0 auto',paddingBottom:48}}>
     ${Toast}
-    <!-- HEADER -->
     <div style=${{position:'sticky',top:0,zIndex:20,background:C.bg,borderBottom:`1px solid ${C.border}`,padding:'10px 14px 8px'}}>
-      <div style=${{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+      <div style=${{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
         <button onClick=${onBack} style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:20,padding:0,lineHeight:1}}>‹</button>
-        <div style=${{flex:1,minWidth:0}}>
-          <div style=${{display:'flex',alignItems:'baseline',gap:6}}>
-            <span style=${{fontWeight:800,fontSize:17,color:pColL,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:160}}>${player.name}</span>
-            <span style=${{fontSize:11,color:C.muted,flexShrink:0}}>ist dran</span>
-            <span style=${{fontSize:10,background:C.surface2,borderRadius:4,padding:'1px 5px',color:C.muted}}>🎲 App</span>
-          </div>
-        </div>
-        <div style=${{display:'flex',alignItems:'center',gap:3,marginRight:8}}>
-          ${[0,1,2].map(i=>html`<span key=${i} style=${{fontSize:14,opacity:i<player.chips?1:0.2,transition:'opacity 0.3s'}}>🔴</span>`)}
-        </div>
+        <span style=${{fontWeight:800,fontSize:16,color:pColL,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:160}}>${player.name}</span>
+        <span style=${{fontSize:11,color:C.muted}}>ist dran</span>
+        <button onClick=${()=>setHideScores(h=>!h)} style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:15,padding:'0 4px'}}>${hideScores?'🙈':'👁'}</button>
+        <button onClick=${()=>{if(confirm('Spiel wirklich abbrechen?'))onCancel();}} style=${{background:'none',border:`1px solid ${C.red}55`,borderRadius:8,color:C.red,cursor:'pointer',fontSize:11,padding:'3px 8px',opacity:0.7}}>✕</button>
         <div style=${{textAlign:'right',flexShrink:0}}>
-          <div style=${{fontSize:22,fontWeight:900,color:pColL,lineHeight:1}}>${sc.total}</div>
-          <div style=${{fontSize:9,color:C.muted}}>${sc.b?html`<span style=${{color:C.green}}>✓ Bonus</span>`:html`<span>ob. ${sc.u}/73</span>`}</div>
+          <div style=${{fontSize:20,fontWeight:900,color:pColL,lineHeight:1}}>${hideScores?'—':sc.total}</div>
+          <div style=${{fontSize:9,color:C.muted}}>${hideScores?'':sc.b?html`<span style=${{color:C.green}}>✓ Bonus</span>`:html`<span>ob. ${sc.u}/73</span>`}</div>
         </div>
+      </div>
+      <div style=${{display:'flex',gap:3,marginBottom:6}}>
+        ${[0,1,2].map(ci=>html`<span key=${ci} style=${{fontSize:14,opacity:ci<player.chips?1:0.2}}>🔴</span>`)}
+        <span style=${{fontSize:10,color:C.muted,marginLeft:6,alignSelf:'center'}}>Wurf ${turn.rollCount}/${maxRolls}</span>
       </div>
       <div style=${{display:'flex',gap:6,overflowX:'auto',paddingBottom:2}}>
         ${game.players.map((p,i)=>i===game.currentPlayerIdx?null:html`<div key=${i} style=${{flexShrink:0,background:C.surface2,borderRadius:8,padding:'3px 8px',display:'flex',alignItems:'center',gap:5}}>
           <span style=${{width:6,height:6,borderRadius:'50%',background:pColor(p.name,roster),display:'inline-block',flexShrink:0}}/>
           <span style=${{fontSize:10,color:C.muted,maxWidth:60,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>${p.name}</span>
-          <span style=${{fontSize:11,fontWeight:700,color:pColor(p.name,roster,true)}}>${calc(p.scores).total}</span>
+          <span style=${{fontSize:11,fontWeight:700,color:pColor(p.name,roster,true)}}>${hideScores?'—':calc(p.scores).total}</span>
         </div>`)}
       </div>
     </div>
 
-    <!-- DICE AREA -->
-    <div style=${{background:C.surface,padding:'18px 14px 14px',marginBottom:2}}>
-      <div style=${{display:'flex',justifyContent:'center',gap:6,marginBottom:12}}>
-        ${[1,2,3,4].map(n=>{
-          if(n===4&&!turn.chipUsed) return null;
-          const dn=turn.rollCount>=n, cn=turn.rollCount===n-1;
-          return html`<div key=${n} style=${{width:28,height:28,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,background:dn?pCol:'transparent',border:`2px solid ${dn?pCol:cn?C.muted:C.border}`,color:dn?'white':C.muted,transition:'all 0.25s'}}>${n}</div>`;
-        })}
-      </div>
+    <div style=${{background:C.surface,padding:'16px 14px 14px',marginBottom:2}}>
       <div style=${{display:'flex',gap:5,justifyContent:'center',marginBottom:14}}>
         ${turn.dice.map((d,i)=>html`<${Die} key=${turn.held[i]?`${i}-held`:`${i}-${rollKey}`}
           value=${d} held=${turn.held[i]} rolled=${hasRolled} isDten=${i===5}
           canHold=${hasRolled&&!mustScore} onToggle=${()=>toggleHold(i)}/>`)}
       </div>
       ${!done&&html`<div style=${{display:'flex',gap:8}}>
-        <button onClick=${doRoll} disabled=${!canRoll||rolling} className=${canRoll&&!rolling?'glow-btn':''}
-          style=${{flex:1,padding:'14px',borderRadius:14,border:'none',background:canRoll?undefined:'#1a1635',color:'white',fontSize:15,fontWeight:800,cursor:canRoll?'pointer':'not-allowed',opacity:canRoll?1:0.45,boxShadow:canRoll?'0 4px 24px rgba(168,85,247,0.35)':'none',transition:'opacity 0.2s'}}>
+        <button onClick=${doRoll} disabled=${!canRoll||rolling} className=${canRoll&&!rolling?'glow-btn':''} style=${{
+          flex:1,padding:'13px',borderRadius:14,border:'none',background:canRoll?undefined:'#1a1635',
+          color:'white',fontSize:14,fontWeight:800,cursor:canRoll?'pointer':'not-allowed',opacity:canRoll?1:0.45}}>
           ${rolling?'…':turn.rollCount===0?'🎲 Würfeln':mustScore?'⬇ Kategorie wählen!':'🎲 Nochmal würfeln'}
         </button>
-        ${turn.rollCount===3&&!turn.chipUsed&&player.chips>0&&html`<button onClick=${useChip} style=${{padding:'14px 12px',borderRadius:14,background:C.surface2,border:`1px solid ${C.border}`,color:C.text,cursor:'pointer',fontSize:13,fontWeight:700,whiteSpace:'nowrap'}}>🔴 4. Wurf</button>`}
+        ${turn.rollCount===3&&!turn.chipUsed&&player.chips>0&&html`<button onClick=${useChip} style=${{padding:'13px 12px',borderRadius:14,background:C.surface2,border:`1px solid ${C.border}`,color:C.text,cursor:'pointer',fontSize:13,fontWeight:700,whiteSpace:'nowrap'}}>🔴 4. Wurf</button>`}
       </div>`}
     </div>
 
-    <!-- CATEGORIES -->
     ${hasRolled&&!done&&html`<div style=${{padding:'4px 10px 8px'}}>
       <div style=${{fontSize:10,fontWeight:700,color:C.muted2,letterSpacing:2,textTransform:'uppercase',padding:'10px 4px 6px'}}>OBERER TEIL</div>
       ${UPPER.map(cat=>{
-        const scored=player.scores[cat.id]!==undefined, pot=potentials[cat.id], good=!scored&&pot!==undefined&&pot>0;
+        const scored=player.scores[cat.id]!==undefined,pot=potentials[cat.id],good=!scored&&pot!==undefined&&pot>0;
         return html`<${CatRow} key=${cat.id} label=${html`<span>${cat.face} ${cat.label}</span>`} scored=${scored} scoredVal=${player.scores[cat.id]} pot=${pot} good=${good} onClick=${()=>!scored&&setScoreModal({cat,pot,good})}/>`;
       })}
-      <div style=${{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 12px',background:C.surface,borderRadius:10,margin:'4px 0 8px',fontSize:11}}>
+      <div style=${{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 12px',background:C.surface,borderRadius:10,margin:'4px 0 8px',fontSize:11}}>
         <span style=${{color:C.muted}}>Oberer Teil: <strong style=${{color:C.text}}>${sc.u}</strong></span>
         ${sc.b?html`<span style=${{color:C.green,fontWeight:700}}>✓ Bonus +45!</span>`:html`<span style=${{color:C.muted}}>${73-sc.u} bis Bonus</span>`}
-        <div style=${{width:60,height:4,background:C.surface2,borderRadius:2,overflow:'hidden'}}>
-          <div style=${{height:4,borderRadius:2,background:PC[0],width:`${Math.min(100,sc.u/73*100)}%`}}/>
-        </div>
+        <div style=${{width:60,height:4,background:C.surface2,borderRadius:2,overflow:'hidden'}}><div style=${{height:4,borderRadius:2,background:PC[0],width:`${Math.min(100,sc.u/73*100)}%`}}/></div>
       </div>
-      <div style=${{fontSize:10,fontWeight:700,color:C.muted2,letterSpacing:2,textTransform:'uppercase',padding:'6px 4px 6px'}}>UNTERER TEIL</div>
+      <div style=${{fontSize:10,fontWeight:700,color:C.muted2,letterSpacing:2,textTransform:'uppercase',padding:'6px 4px'}}>UNTERER TEIL</div>
       ${LOWER.map(cat=>{
-        const scored=player.scores[cat.id]!==undefined, pot=potentials[cat.id], good=!scored&&pot!==null&&pot!==undefined;
+        const scored=player.scores[cat.id]!==undefined,pot=potentials[cat.id],good=!scored&&pot!==null&&pot!==undefined;
         return html`<${CatRow} key=${cat.id} label=${cat.label} sub=${cat.t==='fix'?`${cat.pts} Pkt`:cat.t==='super'?'×2':undefined} scored=${scored} scoredVal=${player.scores[cat.id]} pot=${pot} good=${good} onClick=${()=>!scored&&setScoreModal({cat,pot,good})}/>`;
       })}
     </div>`}
 
-    <!-- GAME OVER -->
     ${done&&html`<div style=${{padding:'16px 14px'}} className="pop-in">
-      <div style=${{background:'linear-gradient(135deg,#2d1060,#1a0a30)',borderRadius:20,padding:'24px',textAlign:'center',border:`1px solid ${PC[0]}`,boxShadow:`0 0 40px rgba(168,85,247,0.2)`}}>
+      <div style=${{background:'linear-gradient(135deg,#3d2080,#2a1460)',borderRadius:20,padding:'24px',textAlign:'center',border:`1px solid ${PC[0]}`}}>
         <div style=${{fontSize:32}}>🎉</div>
-        <div style=${{fontSize:22,fontWeight:900,marginTop:8}}>
+        <div style=${{fontSize:20,fontWeight:900,marginTop:8}}>
           ${(()=>{const sc2=game.players.map(p=>calc(p.scores).total),mx=Math.max(...sc2),w=game.players.filter((_,i)=>sc2[i]===mx);return w.length===1?`${w[0].name} gewinnt!`:'Unentschieden!';})()}
         </div>
         <div style=${{display:'flex',flexWrap:'wrap',gap:10,justifyContent:'center',marginTop:12}}>
@@ -878,10 +740,11 @@ function DiceGame({game,roster,onUpdate,onFinish,onBack}) {
     ${scoreModal&&html`<div onClick=${()=>setScoreModal(null)} style=${{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'flex-end',justifyContent:'center',zIndex:50}}>
       <div onClick=${e=>e.stopPropagation()} className="slide-up" style=${{background:C.surface,borderRadius:'22px 22px 0 0',width:'100%',maxWidth:460,padding:'20px 20px 44px',borderTop:`2px solid ${scoreModal.good?pCol:C.border}`}}>
         <div style=${{width:36,height:4,background:C.border,borderRadius:2,margin:'0 auto 18px'}}/>
-        <div style=${{textAlign:'center',marginBottom:20}}>
+        <div style=${{textAlign:'center',marginBottom:16}}>
           <div style=${{fontSize:20,fontWeight:800}}>${scoreModal.cat.label}</div>
-          <div style=${{fontSize:12,color:C.muted,marginTop:4}}>${scoreModal.cat.t==='fix'?`Pauschal ${scoreModal.cat.pts} Punkte`:scoreModal.cat.t==='super'?`Alle Augen × 2 = ${scoreModal.pot}`:`Alle Augen = ${scoreModal.pot}`}</div>
-          ${scoreModal.good&&html`<div style=${{fontSize:40,fontWeight:900,color:pColL,margin:'10px 0 4px',lineHeight:1}} className="pop-in">${scoreModal.pot}</div>`}
+          ${scoreModal.cat.rules&&html`<div style=${{fontSize:12,color:C.muted,marginTop:6,background:C.surface2,borderRadius:10,padding:'8px 12px',textAlign:'left',lineHeight:1.5}}>📖 ${scoreModal.cat.rules}</div>`}
+          ${scoreModal.good&&html`<div style=${{fontSize:38,fontWeight:900,color:pColL,marginTop:10}} className="pop-in">${scoreModal.pot}</div>`}
+          ${scoreModal.good&&html`<div style=${{fontSize:11,color:C.muted}}>Punkte</div>`}
         </div>
         <div style=${{display:'flex',flexDirection:'column',gap:10}}>
           ${scoreModal.good&&html`<${Btn} onClick=${()=>scoreCategory(scoreModal.cat.id,scoreModal.pot)} bg="#14532d">✓ ${scoreModal.pot} Punkte eintragen</${Btn}>`}
@@ -893,52 +756,42 @@ function DiceGame({game,roster,onUpdate,onFinish,onBack}) {
   </div>`;
 }
 
-// ══ STATS ════════════════════════════════════════════════════════
+// ═══ STATS ══════════════════════════════════════════════════════
+function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,cmp,setCmp,onDeleteGame,onArchive,onHardDelete,onRestore,onBack}) {
+  const [deleteConfirm,     setDeleteConfirm]     = useState(null);
+  const [deleteGameConfirm, setDeleteGameConfirm] = useState(null);
+  const archive = ls('kx:archive',[]);
+  const filteredGames = filter==='all'?games:games.filter(g=>gameMode(g)===filter);
 
-function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,cmp,setCmp,onArchive,onHardDelete,onRestore,onBack}) {
-  const [deleteConfirm, setDeleteConfirm] = useState(null); // name to delete
-  const archive = ls('kx:archive', []);
-  const filteredGames = filter==='all' ? games : games.filter(g=>gameMode(g)===filter);
-
-  if (!games.length) return html`<div style=${{maxWidth:460,margin:'0 auto',padding:'60px 20px',textAlign:'center'}}>
+  if(!filteredGames.length&&!games.length) return html`<div style=${{maxWidth:460,margin:'0 auto',padding:'60px 20px',textAlign:'center'}}>
     <button onClick=${onBack} style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:16,display:'block',marginBottom:32}}>‹ Zurück</button>
     <div style=${{fontSize:40,marginBottom:12}}>📊</div>
     <div style=${{color:C.muted}}>Noch keine Spiele gespeichert.</div>
   </div>`;
 
-  const manualCount = games.filter(g=>gameMode(g)==='manual').length;
-  const appCount    = games.filter(g=>gameMode(g)==='app').length;
-
-  // All players who ever played — derived from game history, not roster.
-  // This ensures deleted players still appear in stats.
-  const allHistoryPlayers = [...new Set(games.flatMap(g=>g.players.map(p=>p.name)))];
-  // Stable color: use roster index if present, else position in history list
-  const colorIdx = name => {
-    const ri = roster.indexOf(name);
-    return ri >= 0 ? ri : roster.length + allHistoryPlayers.indexOf(name);
-  };
+  // All players who ever played (from game history)
+  const allHistoryPlayers=[...new Set(games.flatMap(g=>g.players.map(p=>p.name)))];
+  const colorIdx=name=>{ const ri=roster.indexOf(name); return ri>=0?ri:roster.length+allHistoryPlayers.indexOf(name); };
 
   const playerStats=allHistoryPlayers.map(name=>{
     const pg=filteredGames.filter(g=>g.players.some(p=>p.name===name));
-    if (!pg.length) return null;
+    if(!pg.length)return null;
     const getP=g=>g.players.find(p=>p.name===name);
-    const sc=pg.map(g=>calc(getP(g).scores));
-    const tots=sc.map(s=>s.total);
+    const sc=pg.map(g=>calc(getP(g).scores)),tots=sc.map(s=>s.total);
     const wins=pg.filter(g=>{const all=g.players.map(p=>calc(p.scores).total),my=calc(getP(g).scores).total;return my===Math.max(...all)&&all.filter(s=>s===my).length===1;}).length;
     const catData=[...UPPER,...LOWER].map(cat=>{
-      const entries=pg.map(g=>getP(g).scores[cat.id]).filter(v=>v!==undefined);
-      const ach=entries.filter(v=>v>0);
-      return {id:cat.id,label:cat.label,played:entries.length,achN:ach.length,rate:entries.length?Math.round(ach.length/entries.length*100):0,avgPts:ach.length?Math.round(ach.reduce((a,b)=>a+b,0)/ach.length):0};
+      const entries=pg.map(g=>getP(g).scores[cat.id]).filter(v=>v!==undefined),ach=entries.filter(v=>v>0);
+      return{id:cat.id,label:cat.label,played:entries.length,achN:ach.length,rate:entries.length?Math.round(ach.length/entries.length*100):0,avgPts:ach.length?Math.round(ach.reduce((a,b)=>a+b,0)/ach.length):0};
     });
     const avgDice=UPPER.map(cat=>{
       const vals=pg.filter(g=>getP(g).scores[cat.id]>0).map(g=>Math.round(getP(g).scores[cat.id]/cat.n));
-      return {label:cat.face,name:cat.label,val:vals.length?+(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):0};
+      return{label:cat.face,name:cat.label,val:vals.length?+(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):0};
     });
-    const ci = colorIdx(name);
-    return {name,n:pg.length,wins,avg:avg(tots),best:tots.length?Math.max(...tots):0,worst:tots.length?Math.min(...tots):0,bonusRate:pg.length?Math.round(sc.filter(s=>s.b>0).length/pg.length*100):0,catData,avgDice,tots,ci};
+    const ci=colorIdx(name);
+    return{name,n:pg.length,wins,avg:avg(tots),best:tots.length?Math.max(...tots):0,worst:tots.length?Math.min(...tots):0,bonusRate:pg.length?Math.round(sc.filter(s=>s.b>0).length/pg.length*100):0,catData,avgDice,tots,ci};
   }).filter(Boolean);
 
-  const TABS=[{id:'leaderboard',l:'Rangliste'},{id:'player',l:'Spieler'},{id:'compare',l:'Vergleich'},{id:'dice',l:'Würfel'},{id:'gesamt',l:'Gesamt'},{id:'archiv',l:'Archiv'+(archive.length?' ('+archive.length+')':'')}];
+  const TABS=[{id:'leaderboard',l:'Rangliste'},{id:'player',l:'Spieler'},{id:'compare',l:'Vergleich'},{id:'dice',l:'Würfel'},{id:'gesamt',l:'Gesamt'},{id:'historie',l:'Historie'},{id:'archiv',l:'Archiv'+(archive.length?' ('+archive.length+')':'')}];
   const selP=selPlayer||playerStats[0]?.name;
   const selSt=playerStats.find(p=>p.name===selP);
 
@@ -954,53 +807,41 @@ function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,
   </div>`;
 
   return html`<div style=${{maxWidth:460,margin:'0 auto'}}>
-    <div style=${{position:'sticky',top:0,background:C.bg,zIndex:10,padding:'12px 16px',borderBottom:`1px solid ${C.border}`}}>
-      <div style=${{display:'flex',alignItems:'center',gap:12}}>
+    <div style=${{position:'sticky',top:0,background:C.bg,zIndex:10,padding:'12px 16px 0',borderBottom:`1px solid ${C.border}`}}>
+      <div style=${{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
         <button onClick=${onBack} style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:20,padding:0}}>‹</button>
         <span style=${{fontWeight:800,fontSize:18,flex:1}}>Statistiken</span>
-        <span style=${{fontSize:12,color:C.muted2}}>${filteredGames.length}/${games.length} Spiele</span>
+        <span style=${{fontSize:12,color:C.muted2}}>${games.length} Spiele</span>
       </div>
-
-      <!-- Mode filter -->
-      <div style=${{display:'flex',gap:6,marginTop:10,marginBottom:2}}>
-        ${[['all','Alle',games.length],['manual','📝',manualCount],['app','🎲',appCount]].map(([id,lbl,cnt])=>html`
-          <button key=${id} onClick=${()=>setFilter(id)} style=${{
-            padding:'5px 10px',borderRadius:20,border:`1px solid ${filter===id?PC[0]:C.border}`,
-            background:filter===id?'rgba(168,85,247,0.15)':C.surface2,
-            color:filter===id?PCL[0]:C.muted,cursor:'pointer',fontSize:12,fontWeight:filter===id?700:400,
-          }}>${lbl} <span style=${{opacity:0.7}}>(${cnt})</span></button>
-        `)}
+      <!-- Filter -->
+      <div style=${{display:'flex',gap:6,marginBottom:8}}>
+        ${[['all','Alle'],['manual','📝'],['app','🎲']].map(([id,l])=>html`<button key=${id} onClick=${()=>setFilter(id)} style=${{
+          background:filter===id?PC[0]:C.surface2,border:`1px solid ${filter===id?PC[0]:C.border}`,borderRadius:8,padding:'4px 12px',
+          color:filter===id?'white':C.muted,cursor:'pointer',fontSize:12,fontWeight:600}}>${l}</button>`)}
       </div>
-
-      <div style=${{display:'flex',marginTop:6,borderBottom:`1px solid ${C.border}`,overflowX:'auto'}}>
+      <div style=${{display:'flex',borderBottom:`1px solid ${C.border}`,overflowX:'auto'}}>
         ${TABS.map(t=>html`<button key=${t.id} onClick=${()=>setTab(t.id)} style=${{flexShrink:0,background:'none',border:'none',cursor:'pointer',padding:'8px 12px',fontSize:12,fontWeight:600,color:tab===t.id?PCL[0]:C.muted,borderBottom:tab===t.id?`2px solid ${PC[0]}`:'2px solid transparent'}}>${t.l}</button>`)}
       </div>
     </div>
 
     <div style=${{padding:16}}>
-      ${!playerStats.length && html`<div style=${{textAlign:'center',color:C.muted,padding:40}}>Keine Daten für diesen Filter.</div>`}
+      ${!playerStats.length&&html`<div style=${{textAlign:'center',color:C.muted,padding:40}}>Keine Daten für diesen Filter.</div>`}
 
       ${tab==='leaderboard'&&playerStats.length>0&&html`<div>
-        ${[...playerStats].sort((a,b)=>b.avg-a.avg).map((p,rank)=>{
-          const ci=p.ci;
-          return html`<div key=${p.name} style=${{background:C.surface,borderRadius:16,padding:'12px 16px',marginBottom:8,display:'grid',gridTemplateColumns:'28px 1fr auto',gap:12,alignItems:'center',borderLeft:`3px solid ${PC[ci%5]}`}}>
-            <div style=${{fontSize:18,fontWeight:900,color:rank===0?'#fde68a':C.muted2}}>${rank+1}.</div>
-            <div>
-              <div style=${{fontWeight:700,fontSize:15,color:PCL[ci%5]}}>${p.name}</div>
-              <div style=${{fontSize:11,color:C.muted,marginTop:2}}>${p.n} Spiele · ${p.wins} Siege · Bonus ${p.bonusRate}%</div>
+        ${[...playerStats].sort((a,b)=>b.avg-a.avg).map((p,rank)=>html`<div key=${p.name} style=${{background:C.surface,borderRadius:16,padding:'12px 16px',marginBottom:8,display:'grid',gridTemplateColumns:'28px 1fr auto',gap:12,alignItems:'center',borderLeft:`3px solid ${PC[p.ci%5]}`}}>
+          <div style=${{fontSize:18,fontWeight:900,color:rank===0?'#fde68a':C.muted2}}>${rank+1}.</div>
+          <div>
+            <div style=${{fontWeight:700,fontSize:15,color:PCL[p.ci%5]}}>${p.name}</div>
+            <div style=${{fontSize:11,color:C.muted,marginTop:2}}>${p.n} Spiele · ${p.wins} Siege · Bonus ${p.bonusRate}%</div>
+          </div>
+          <div style=${{display:'flex',alignItems:'center',gap:8}}>
+            <div style=${{textAlign:'right'}}>
+              <div style=${{fontSize:22,fontWeight:900}}>${p.avg}</div>
+              <div style=${{fontSize:10,color:C.muted}}>Ø Punkte</div>
             </div>
-            <div style=${{textAlign:'right',display:'flex',alignItems:'center',gap:10}}>
-              <div>
-                <div style=${{fontSize:22,fontWeight:900}}>${p.avg}</div>
-                <div style=${{fontSize:10,color:C.muted}}>Ø Punkte</div>
-              </div>
-              <button onClick=${()=>setDeleteConfirm(p.name)} style=${{
-                background:'none',border:`1px solid ${C.border}`,borderRadius:8,
-                padding:'6px 8px',color:C.muted,cursor:'pointer',fontSize:14,lineHeight:1,
-              }} title="Aus Statistik löschen">🗑</button>
-            </div>
-          </div>`;
-        })}
+            <button onClick=${()=>setDeleteConfirm(p.name)} style=${{background:'none',border:`1px solid ${C.border}`,borderRadius:8,padding:'6px 8px',color:C.muted,cursor:'pointer',fontSize:13}}>🗑</button>
+          </div>
+        </div>`)}
         ${filteredGames.length>1&&html`<div style=${{background:C.surface,borderRadius:16,padding:14,marginTop:16}}>
           <div style=${{fontSize:13,fontWeight:700,marginBottom:8}}>Punktverlauf</div>
           <div style=${{height:160}}>
@@ -1009,7 +850,7 @@ function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,
                 <${XAxis} dataKey="i" tick=${{fill:C.muted,fontSize:10}} axisLine=${false} tickLine=${false}/>
                 <${YAxis} hide=${true}/>
                 <${Tooltip} contentStyle=${{background:C.surface2,border:`1px solid ${C.border}`,borderRadius:10}} cursor=${{fill:'rgba(255,255,255,0.05)'}}/>
-                ${playerStats.map((p)=>html`<${Bar} key=${p.name} dataKey=${p.name} fill=${PC[p.ci%5]} radius=${[3,3,0,0]}/>`)}
+                ${playerStats.map(p=>html`<${Bar} key=${p.name} dataKey=${p.name} fill=${PC[p.ci%5]} radius=${[3,3,0,0]}/>`)}
               </${BarChart}>
             </${ResponsiveContainer}>
           </div>
@@ -1022,27 +863,32 @@ function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,
           <div style=${{background:C.surface,borderRadius:16,padding:14,marginBottom:12,borderTop:`3px solid ${PC[ci%5]}`}}>
             <div style=${{fontSize:15,fontWeight:800,color:PCL[ci%5],marginBottom:10}}>${selSt.name}</div>
             <div style=${{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
-              ${[['Spiele',selSt.n],['Siege',selSt.wins],['Ø Punkte',selSt.avg||'—'],['Bestwert',selSt.best||'—'],['Schlechtester',selSt.worst||'—'],['Bonus-Rate',selSt.bonusRate+'%']].map(([l,v])=>html`<div style=${{background:C.surface2,borderRadius:10,padding:'8px 10px',textAlign:'center'}}>
-                <div style=${{fontSize:10,color:C.muted,marginBottom:3}}>${l}</div>
-                <div style=${{fontSize:14,fontWeight:700}}>${v}</div>
-              </div>`)}
+              ${[['Spiele',selSt.n],['Siege',selSt.wins],['Ø Punkte',selSt.avg||'—'],['Bestwert',selSt.best||'—'],['Schlechtester',selSt.worst||'—'],['Bonus-Rate',selSt.bonusRate+'%']].map(([l,v])=>html`
+                <div style=${{background:C.surface2,borderRadius:10,padding:'8px 10px',textAlign:'center'}}>
+                  <div style=${{fontSize:10,color:C.muted,marginBottom:3}}>${l}</div>
+                  <div style=${{fontSize:14,fontWeight:700}}>${v}</div>
+                </div>`)}
             </div>
           </div>
-          <div style=${{background:C.surface,borderRadius:16,padding:14}}>
-            <div style=${{fontSize:13,fontWeight:700,marginBottom:10}}>Kategorie-Erreichungsrate</div>
-            ${selSt.catData.filter(c=>c.played>0&&LOWER.some(l=>l.id===c.id)).map(c=>html`<div key=${c.id} style=${{marginBottom:8}}>
-              <div style=${{display:'flex',justifyContent:'space-between',marginBottom:3}}>
-                <span style=${{fontSize:12}}>${c.label}</span>
-                <span style=${{fontSize:12}}><strong>${c.rate}%</strong>${c.avgPts>0?html`<span style=${{color:C.muted}}> · Ø ${c.avgPts}</span>`:''}<span style=${{color:C.muted2}}> (${c.achN}/${c.played})</span></span>
-              </div>
-              <div style=${{height:5,background:C.surface2,borderRadius:3,overflow:'hidden'}}><div style=${{height:5,borderRadius:3,background:PC[ci%5],width:`${c.rate}%`}}/></div>
-            </div>`)}
+          <div style=${{background:C.surface,borderRadius:16,padding:14,marginBottom:12}}>
+            <div style=${{fontSize:13,fontWeight:700,marginBottom:10}}>Kategorie-Statistiken</div>
+            ${selSt.catData.filter(c=>c.played>0&&LOWER.some(l=>l.id===c.id)).map(c=>{
+              const isFixed=['dreiPaare','zweiDreier','fullHouse','grossesFullHouse','kleineStrasse','grosseStrasse','highway','kniffel','kniffelExtreme','zehnMinus','dreiDreissig'].includes(c.id);
+              const isChance=c.id==='chance'||c.id==='superChance';
+              return html`<div key=${c.id} style=${{marginBottom:10}}>
+                <div style=${{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+                  <span style=${{fontSize:12,fontWeight:600}}>${c.label}</span>
+                  <div style=${{display:'flex',alignItems:'center',gap:6}}>
+                    ${!isChance&&html`<span style=${{fontSize:12,color:C.muted}}>${c.rate}%</span>`}
+                    ${!isFixed&&c.avgPts>0&&html`<span style=${{background:PC[ci%5]+'33',color:PCL[ci%5],fontWeight:800,fontSize:13,padding:'2px 8px',borderRadius:8,border:`1px solid ${PC[ci%5]}55`}}>Ø ${c.avgPts}</span>`}
+                    <span style=${{fontSize:11,color:C.muted2}}>(${c.achN}/${c.played})</span>
+                  </div>
+                </div>
+                ${!isChance&&html`<div style=${{height:5,background:C.surface2,borderRadius:3,overflow:'hidden'}}><div style=${{height:5,borderRadius:3,background:PC[ci%5],width:`${c.rate}%`,transition:'width 0.4s'}}/></div>`}
+              </div>`;
+            })}
           </div>
-          <button onClick=${()=>setDeleteConfirm(selSt.name)} style=${{
-            width:'100%',marginTop:12,padding:'11px',borderRadius:14,
-            background:'transparent',border:`1px solid ${C.border}`,
-            color:C.muted,cursor:'pointer',fontSize:13,fontWeight:600,
-          }}>🗑 ${selSt.name} aus Statistik löschen</button>
+          <button onClick=${()=>setDeleteConfirm(selSt.name)} style=${{width:'100%',marginTop:4,padding:'11px',borderRadius:14,background:'transparent',border:`1px solid ${C.border}`,color:C.muted,cursor:'pointer',fontSize:13,fontWeight:600}}>🗑 ${selSt.name} aus Statistik entfernen</button>
         </div>`;})()} 
       </div>`}
 
@@ -1052,10 +898,11 @@ function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,
         ${cmp[0]&&cmp[1]&&cmp[0]!==cmp[1]&&(()=>{
           const p1=cmp[0],p2=cmp[1];
           const shared=filteredGames.filter(g=>g.players.some(p=>p.name===p1)&&g.players.some(p=>p.name===p2));
-          if(!shared.length) return html`<div style=${{color:C.muted,textAlign:'center',padding:20}}>Keine gemeinsamen Spiele.</div>`;
+          if(!shared.length)return html`<div style=${{color:C.muted,textAlign:'center',padding:20}}>Keine gemeinsamen Spiele.</div>`;
           const getS=(g,n)=>calc(g.players.find(p=>p.name===n).scores).total;
           const p1w=shared.filter(g=>getS(g,p1)>getS(g,p2)).length,p2w=shared.filter(g=>getS(g,p2)>getS(g,p1)).length,ties=shared.length-p1w-p2w;
-          const ci1=playerStats.find(p=>p.name===p1)?.ci??0,ci2=playerStats.find(p=>p.name===p2)?.ci??1;const c1=PC[ci1%5],c2=PC[ci2%5],cl1=PCL[ci1%5],cl2=PCL[ci2%5];
+          const ps1=playerStats.find(p=>p.name===p1),ps2=playerStats.find(p=>p.name===p2);
+          const c1=PC[(ps1?.ci??0)%5],c2=PC[(ps2?.ci??1)%5],cl1=PCL[(ps1?.ci??0)%5],cl2=PCL[(ps2?.ci??1)%5];
           const p1t=shared.map(g=>getS(g,p1)),p2t=shared.map(g=>getS(g,p2));
           return html`<div>
             <div style=${{background:C.surface,borderRadius:16,padding:16,marginBottom:12}}>
@@ -1073,7 +920,7 @@ function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,
                 ${[['Ø Punkte',avg(tots)],['Bestwert',Math.max(...tots)],['Schlechtester',Math.min(...tots)]].map(([l,v])=>html`<div style=${{display:'flex',justifyContent:'space-between',padding:'3px 0',borderBottom:`1px solid ${C.border}`}}><span style=${{fontSize:10,color:C.muted}}>${l}</span><span style=${{fontSize:12,fontWeight:700}}>${v}</span></div>`)}
               </div>`)}
             </div>
-            ${shared.length>1&&html`<div style=${{background:C.surface,borderRadius:16,padding:14}}>
+            ${shared.length>1&&html`<div style=${{background:C.surface,borderRadius:16,padding:14,marginBottom:10}}>
               <div style=${{fontSize:13,fontWeight:700,marginBottom:8}}>Punktverlauf</div>
               <div style=${{height:150}}>
                 <${ResponsiveContainer} width="100%" height="100%">
@@ -1086,188 +933,288 @@ function Stats({games,roster,tab,setTab,filter,setFilter,selPlayer,setSelPlayer,
                 </${ResponsiveContainer}>
               </div>
             </div>`}
+            <!-- Category comparison -->
+            <div style=${{background:C.surface,borderRadius:16,padding:14}}>
+              <div style=${{fontSize:13,fontWeight:700,marginBottom:10}}>Kategorie-Vergleich</div>
+              ${LOWER.map(cat=>{
+                const isFixed=['dreiPaare','zweiDreier','fullHouse','grossesFullHouse','kleineStrasse','grosseStrasse','highway','kniffel','kniffelExtreme','zehnMinus','dreiDreissig'].includes(cat.id);
+                const isChance=cat.id==='chance'||cat.id==='superChance';
+                const getE=(n)=>shared.map(g=>{const pl=g.players.find(p=>p.name===n);return pl?.scores[cat.id];}).filter(v=>v!==undefined);
+                const e1=getE(p1),e2=getE(p2),a1=e1.filter(v=>v>0),a2=e2.filter(v=>v>0);
+                const s1={rate:e1.length?Math.round(a1.length/e1.length*100):0,avg:a1.length?Math.round(a1.reduce((a,b)=>a+b,0)/a1.length):0};
+                const s2={rate:e2.length?Math.round(a2.length/e2.length*100):0,avg:a2.length?Math.round(a2.reduce((a,b)=>a+b,0)/a2.length):0};
+                if(!e1.length&&!e2.length)return null;
+                return html`<div key=${cat.id} style=${{marginBottom:10}}>
+                  <div style=${{fontSize:11,fontWeight:700,color:C.muted,marginBottom:4}}>${cat.label}</div>
+                  <div style=${{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+                    ${[[p1,s1,c1,cl1],[p2,s2,c2,cl2]].map(([name,s,col,lcol])=>html`<div key=${name} style=${{background:C.surface2,borderRadius:8,padding:'6px 8px'}}>
+                      <div style=${{fontSize:10,color:lcol,fontWeight:700,marginBottom:3}}>${name}</div>
+                      ${!isChance&&html`<div style=${{fontSize:11,color:C.muted}}>${s.rate}%</div>`}
+                      ${!isFixed&&s.avg>0&&html`<div style=${{fontWeight:800,fontSize:13,color:lcol,background:col+'22',borderRadius:6,padding:'2px 6px',display:'inline-block',marginTop:2}}>Ø ${s.avg}</div>`}
+                    </div>`)}
+                  </div>
+                </div>`;
+              }).filter(Boolean)}
+            </div>
           </div>`;
         })()}
       </div>`}
 
       ${tab==='dice'&&html`<div>
-        <${Sel} val=${selP} set=${setSelPlayer} label="Spieler"/>
-        ${selSt&&html`<div style=${{background:C.surface,borderRadius:16,padding:14}}>
-          <div style=${{fontSize:13,fontWeight:700,marginBottom:4}}>Ø Würfelanzahl pro Seite</div>
-          <div style=${{fontSize:11,color:C.muted,marginBottom:12}}>Nur gewertete (nicht gestrichene) Felder.</div>
-          <div style=${{height:180}}>
-            <${ResponsiveContainer} width="100%" height="100%">
-              <${BarChart} data=${selSt.avgDice} barCategoryGap="15%">
-                <${XAxis} dataKey="label" tick=${{fill:C.muted,fontSize:18}} axisLine=${false} tickLine=${false}/>
-                <${YAxis} tick=${{fill:C.muted,fontSize:10}} axisLine=${false} tickLine=${false} width=${24}/>
-                <${Tooltip} contentStyle=${{background:C.surface2,border:`1px solid ${C.border}`,borderRadius:10}} cursor=${{fill:'rgba(255,255,255,0.05)'}} formatter=${(v,n)=>[`Ø ${v}`,n]}/>
-                <${Bar} dataKey="val" name=${selSt.name} radius=${[5,5,0,0]}>
-                  ${selSt.avgDice.map((_,i)=>html`<${Cell} key=${i} fill=${PC[selSt.ci%5]}/>`)}
-                </${Bar}>
-              </${BarChart}>
-            </${ResponsiveContainer}>
+        <div style=${{marginBottom:14}}>
+          <div style=${{fontSize:11,color:C.muted2,letterSpacing:1,textTransform:'uppercase',marginBottom:5,fontWeight:700}}>Spieler</div>
+          <div style=${{position:'relative'}}>
+            <select value=${selP||''} onChange=${e=>setSelPlayer(e.target.value)} style=${{width:'100%',background:C.surface2,border:`1px solid ${C.border}`,borderRadius:12,padding:'10px 36px 10px 14px',color:C.text,fontSize:14,outline:'none',cursor:'pointer'}}>
+              <option value="">Spieler wählen…</option>
+              ${playerStats.map(p=>html`<option key=${p.name} value=${p.name}>${p.name}</option>`)}
+              <option value="__gesamt__">Gesamt (alle)</option>
+            </select>
+            <span style=${{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',color:C.muted,pointerEvents:'none'}}>▾</span>
           </div>
-        </div>`}
+        </div>
+        ${(selP)&&(()=>{
+          const isG=selP==='__gesamt__';
+          const diceData=isG?UPPER.map(cat=>{const vals=games.flatMap(g=>g.players.filter(p=>p.scores[cat.id]>0).map(p=>Math.round(p.scores[cat.id]/cat.n)));return{label:cat.face,name:cat.label,val:vals.length?+(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):0};}):(playerStats.find(p=>p.name===selP)?.avgDice||[]);
+          const ci=isG?4:(playerStats.find(p=>p.name===selP)?.ci??0);
+          return html`<div style=${{background:C.surface,borderRadius:16,padding:14}}>
+            <div style=${{fontSize:13,fontWeight:700,marginBottom:10}}>Ø Würfelanzahl pro Seite</div>
+            <div style=${{height:180}}>
+              <${ResponsiveContainer} width="100%" height="100%">
+                <${BarChart} data=${diceData} barCategoryGap="15%">
+                  <${XAxis} dataKey="label" tick=${{fill:C.muted,fontSize:18}} axisLine=${false} tickLine=${false}/>
+                  <${YAxis} domain=${[0,6]} ticks=${[0,1,2,3,4,5,6]} tick=${{fill:C.muted,fontSize:10}} axisLine=${false} tickLine=${false} width=${24}/>
+                  <${Tooltip} contentStyle=${{background:C.surface2,border:`1px solid ${C.border}`,borderRadius:10}} cursor=${{fill:'rgba(255,255,255,0.05)'}} formatter=${(v,n)=>[`Ø ${v}`,n]}/>
+                  <${Bar} dataKey="val" name=${isG?'Gesamt':selP} radius=${[5,5,0,0]}>${diceData.map((_,i)=>html`<${Cell} key=${i} fill=${PC[ci%5]}/>`)}</${Bar}>
+                </${BarChart}>
+              </${ResponsiveContainer}>
+            </div>
+            <div style=${{display:'flex',justifyContent:'space-around',marginTop:8}}>
+              ${diceData.map(d=>html`<div key=${d.label} style=${{textAlign:'center'}}><div style=${{fontSize:16}}>${d.label}</div><div style=${{fontSize:13,fontWeight:800,color:PCL[ci%5]}}>${d.val}</div></div>`)}
+            </div>
+          </div>`;
+        })()}
       </div>`}
 
       ${tab==='gesamt'&&(()=>{
         const allCat=LOWER.map(cat=>{
           const entries=filteredGames.flatMap(g=>g.players.map(p=>p.scores[cat.id]).filter(v=>v!==undefined));
           const ach=entries.filter(v=>v>0);
-          return {id:cat.id,label:cat.label,t:cat.t,pts:cat.pts,played:entries.length,achN:ach.length,rate:entries.length?Math.round(ach.length/entries.length*100):0,avg:ach.length?Math.round(ach.reduce((a,b)=>a+b,0)/ach.length):0};
+          return{id:cat.id,label:cat.label,t:cat.t,pts:cat.pts,played:entries.length,achN:ach.length,rate:entries.length?Math.round(ach.length/entries.length*100):0,avg:ach.length?Math.round(ach.reduce((a,b)=>a+b,0)/ach.length):0};
         }).filter(c=>c.played>0);
         const totalPlayers=[...new Set(filteredGames.flatMap(g=>g.players.map(p=>p.name)))].length;
         const overallRate=allCat.length?Math.round(allCat.reduce((s,c)=>s+c.rate,0)/allCat.length):0;
+        const isFixed=id=>['dreiPaare','zweiDreier','fullHouse','grossesFullHouse','kleineStrasse','grosseStrasse','highway','kniffel','kniffelExtreme','zehnMinus','dreiDreissig'].includes(id);
+        const isChance=id=>id==='chance'||id==='superChance';
         return html`<div>
           <div style=${{background:C.surface,borderRadius:16,padding:14,marginBottom:14,display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,textAlign:'center'}}>
-            ${[['Spiele',filteredGames.length],['Spieler',totalPlayers],['Ø Erreichung',overallRate+'%']].map(([l,v])=>html`<div style=${{background:C.surface2,borderRadius:12,padding:'10px 6px'}}><div style=${{fontSize:10,color:C.muted,marginBottom:4}}>${l}</div><div style=${{fontSize:18,fontWeight:900,color:PCL[0]}}>${v}</div></div>`)}
+            ${[['Spiele',filteredGames.length],['Spieler',totalPlayers],['Ø Erreichung',overallRate+'%']].map(([l,v])=>html`
+              <div style=${{background:C.surface2,borderRadius:12,padding:'10px 6px'}}><div style=${{fontSize:10,color:C.muted,marginBottom:4}}>${l}</div><div style=${{fontSize:18,fontWeight:900,color:PCL[0]}}>${v}</div></div>`)}
           </div>
           ${allCat.map(c=>html`<div key=${c.id} style=${{background:C.surface,borderRadius:14,padding:'11px 14px',marginBottom:8}}>
             <div style=${{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
               <span style=${{fontSize:13,fontWeight:700}}>${c.label}</span>
-              <span style=${{fontSize:11}}><strong style=${{color:c.rate>=70?C.green:c.rate>=40?PCL[3]:PCL[1]}}>${c.rate}%</strong>${c.t!=='fix'&&c.avg>0?html`<span style=${{color:C.muted}}> · Ø ${c.avg} Pkt</span>`:''}<span style=${{color:C.muted2}}> (${c.achN}/${c.played})</span></span>
+              <div style=${{display:'flex',alignItems:'center',gap:6}}>
+                ${!isChance(c.id)&&html`<strong style=${{fontSize:12,color:c.rate>=70?C.green:c.rate>=40?PCL[3]:PCL[1]}}>${c.rate}%</strong>`}
+                ${!isFixed(c.id)&&c.avg>0&&html`<span style=${{fontWeight:800,fontSize:13,color:PCL[0],background:PC[0]+'22',borderRadius:8,padding:'2px 8px',border:`1px solid ${PC[0]}44`}}>Ø ${c.avg}</span>`}
+                <span style=${{color:C.muted2,fontSize:11}}>(${c.achN}/${c.played})</span>
+              </div>
             </div>
-            <div style=${{height:6,background:C.surface2,borderRadius:3,overflow:'hidden'}}><div style=${{height:6,borderRadius:3,width:`${c.rate}%`,background:c.rate>=70?C.green:c.rate>=40?PC[3]:PC[1]}}/></div>
+            ${!isChance(c.id)&&html`<div style=${{height:6,background:C.surface2,borderRadius:3,overflow:'hidden'}}><div style=${{height:6,borderRadius:3,transition:'width 0.4s',width:`${c.rate}%`,background:c.rate>=70?C.green:c.rate>=40?PC[3]:PC[1]}}/></div>`}
           </div>`)}
           <div style=${{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:16}}>
-            <div style=${{background:C.surface,borderRadius:14,padding:12}}><div style=${{fontSize:12,fontWeight:700,color:C.green,marginBottom:8}}>🏆 Top</div>${[...allCat].sort((a,b)=>b.rate-a.rate).slice(0,3).map(c=>html`<div key=${c.id} style=${{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom:`1px solid ${C.border}`}}><span style=${{fontSize:11,color:C.muted}}>${c.label}</span><span style=${{fontSize:11,fontWeight:700,color:C.green}}>${c.rate}%</span></div>`)}</div>
-            <div style=${{background:C.surface,borderRadius:14,padding:12}}><div style=${{fontSize:12,fontWeight:700,color:PC[1],marginBottom:8}}>📉 Schwer</div>${[...allCat].sort((a,b)=>a.rate-b.rate).slice(0,3).map(c=>html`<div key=${c.id} style=${{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom:`1px solid ${C.border}`}}><span style=${{fontSize:11,color:C.muted}}>${c.label}</span><span style=${{fontSize:11,fontWeight:700,color:PC[1]}}>${c.rate}%</span></div>`)}</div>
+            <div style=${{background:C.surface,borderRadius:14,padding:12}}>
+              <div style=${{fontSize:12,fontWeight:700,color:C.green,marginBottom:8}}>🏆 Top</div>
+              ${[...allCat].sort((a,b)=>b.rate-a.rate).slice(0,3).map(c=>html`<div key=${c.id} style=${{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom:`1px solid ${C.border}`}}><span style=${{fontSize:11,color:C.muted}}>${c.label}</span><span style=${{fontSize:11,fontWeight:700,color:C.green}}>${c.rate}%</span></div>`)}
+            </div>
+            <div style=${{background:C.surface,borderRadius:14,padding:12}}>
+              <div style=${{fontSize:12,fontWeight:700,color:PC[1],marginBottom:8}}>📉 Schwer</div>
+              ${[...allCat].sort((a,b)=>a.rate-b.rate).slice(0,3).map(c=>html`<div key=${c.id} style=${{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom:`1px solid ${C.border}`}}><span style=${{fontSize:11,color:C.muted}}>${c.label}</span><span style=${{fontSize:11,fontWeight:700,color:PC[1]}}>${c.rate}%</span></div>`)}
+            </div>
           </div>
         </div>`;
       })()}
 
-      <!-- Archiv tab -->
+      ${tab==='historie'&&html`<div>
+        <div style=${{fontSize:12,color:C.muted,marginBottom:14}}>Tippe auf 🗑 um ein Spiel zu löschen.</div>
+        ${filteredGames.length===0?html`<div style=${{textAlign:'center',color:C.muted,padding:40}}>Keine Spiele für diesen Filter.</div>`:
+        [...filteredGames].reverse().map(g=>{
+          const sc=g.players.map(p=>calc(p.scores).total),mx=Math.max(...sc);
+          return html`<div key=${g.id} style=${{background:C.surface,borderRadius:14,padding:'12px 14px',marginBottom:8}}>
+            <div style=${{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+              <div><span style=${{color:C.muted,fontSize:12}}>${g.date}</span>
+                <span style=${{fontSize:10,background:C.surface2,borderRadius:6,padding:'1px 6px',marginLeft:6,color:C.muted2}}>${MODE_ICON[gameMode(g)]} ${MODE_LABEL[gameMode(g)]}</span>
+              </div>
+              <button onClick=${()=>setDeleteGameConfirm(g.id)} style=${{background:'none',border:'none',color:C.red,cursor:'pointer',fontSize:18,padding:'0 4px'}}>🗑</button>
+            </div>
+            <div style=${{display:'flex',flexWrap:'wrap',gap:8}}>
+              ${g.players.map((p,i)=>html`<span key=${i} style=${{fontSize:13,color:sc[i]===mx?PCL[i%5]:C.muted}}>${p.name}: <strong>${sc[i]}</strong></span>`)}
+            </div>
+          </div>`;
+        })}
+      </div>`}
+
       ${tab==='archiv'&&html`<div>
-        ${archive.length===0
-          ? html`<div style=${{textAlign:'center',color:C.muted,padding:40}}>
-              <div style=${{fontSize:32,marginBottom:12}}>📦</div>
-              Keine archivierten Spielerinnen.
-            </div>`
-          : archive.map(a=>{
-              const gameCount = a.gameEntries?.length ?? 0;
-              return html`<div key=${a.name} style=${{
-                background:C.surface,borderRadius:16,padding:'14px 16px',marginBottom:10,
-                display:'flex',alignItems:'center',gap:12,
-              }}>
-                <div style=${{flex:1}}>
-                  <div style=${{fontWeight:700,fontSize:15}}>${a.name}</div>
-                  <div style=${{fontSize:11,color:C.muted,marginTop:3}}>
-                    Archiviert ${a.archivedAt} · ${gameCount} Spiel${gameCount!==1?'e':''} gespeichert
-                  </div>
-                </div>
-                <button onClick=${()=>onRestore(a.name)} style=${{
-                  background:'rgba(34,197,94,0.15)',border:`1px solid ${C.green}`,
-                  borderRadius:10,padding:'8px 14px',color:C.green,
-                  cursor:'pointer',fontSize:12,fontWeight:700,whiteSpace:'nowrap',
-                }}>↩ Wiederherstellen</button>
-              </div>`;
-            })}
+        ${archive.length===0?html`<div style=${{textAlign:'center',color:C.muted,padding:40}}><div style=${{fontSize:32,marginBottom:12}}>📦</div>Keine archivierten Spielerinnen.</div>`:
+        archive.map(a=>html`<div key=${a.name} style=${{background:C.surface,borderRadius:16,padding:'14px 16px',marginBottom:10,display:'flex',alignItems:'center',gap:12}}>
+          <div style=${{flex:1}}>
+            <div style=${{fontWeight:700,fontSize:15}}>${a.name}</div>
+            <div style=${{fontSize:11,color:C.muted,marginTop:3}}>Archiviert ${a.archivedAt} · ${a.gameEntries?.length??0} Spiele gesichert</div>
+          </div>
+          <button onClick=${()=>onRestore(a.name)} style=${{background:'rgba(34,197,94,0.15)',border:`1px solid ${C.green}`,borderRadius:10,padding:'8px 14px',color:C.green,cursor:'pointer',fontSize:12,fontWeight:700,whiteSpace:'nowrap'}}>↩ Wiederherstellen</button>
+        </div>`)}
       </div>`}
     </div>
 
-    <!-- Delete/Archive confirmation modal -->
-    ${deleteConfirm && (()=>{
-      const affected = games.filter(g=>g.players.some(p=>p.name===deleteConfirm)).length;
-      const hasGames = affected > 0;
-      return html`<div onClick=${()=>setDeleteConfirm(null)} style=${{
-        position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',
-        display:'flex',alignItems:'flex-end',justifyContent:'center',zIndex:50,
-      }}>
-        <div onClick=${e=>e.stopPropagation()} className="slide-up" style=${{
-          background:C.surface,borderRadius:'22px 22px 0 0',
-          width:'100%',maxWidth:460,padding:'24px 20px 44px',
-          borderTop:`2px solid ${hasGames?'#f59e0b':C.red}`,
-        }}>
+    <!-- Player delete/archive modal -->
+    ${deleteConfirm&&(()=>{
+      const affected=games.filter(g=>g.players.some(p=>p.name===deleteConfirm)).length;
+      const hasGames=affected>0;
+      return html`<div onClick=${()=>setDeleteConfirm(null)} style=${{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'flex-end',justifyContent:'center',zIndex:50}}>
+        <div onClick=${e=>e.stopPropagation()} className="slide-up" style=${{background:C.surface,borderRadius:'22px 22px 0 0',width:'100%',maxWidth:460,padding:'24px 20px 44px',borderTop:`2px solid ${hasGames?'#f59e0b':C.red}`}}>
           <div style=${{width:36,height:4,background:C.border,borderRadius:2,margin:'0 auto 20px'}}/>
-          <div style=${{fontSize:22,fontWeight:800,marginBottom:6}}>${deleteConfirm}</div>
-
-          ${hasGames ? html`<div>
-            <!-- Option 1: Archive -->
-            <div style=${{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.3)',
-              borderRadius:14,padding:'14px',marginBottom:10}}>
-              <div style=${{fontSize:13,fontWeight:700,color:'#fde68a',marginBottom:6}}>
-                📦 Archivieren (empfohlen)
-              </div>
-              <div style=${{fontSize:12,color:C.muted,lineHeight:1.5,marginBottom:12}}>
-                Spielerin wird aus der Auswahl entfernt. Ihre ${affected} Spiel${affected!==1?'e':''} bleiben
-                für die anderen erhalten. Eigene Daten werden lokal gesichert
-                und können jederzeit wiederhergestellt werden.
-              </div>
-              <button onClick=${()=>{ onArchive(deleteConfirm); setDeleteConfirm(null); }} style=${{
-                width:'100%',padding:'12px',borderRadius:12,border:'none',
-                background:'#92400e',color:'#fde68a',fontSize:14,fontWeight:700,cursor:'pointer',
-              }}>📦 Archivieren</button>
+          <div style=${{fontSize:22,fontWeight:800,marginBottom:8}}>${deleteConfirm}</div>
+          ${hasGames?html`<div>
+            <div style=${{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.3)',borderRadius:14,padding:'14px',marginBottom:10}}>
+              <div style=${{fontSize:13,fontWeight:700,color:'#fde68a',marginBottom:6}}>📦 Archivieren (empfohlen)</div>
+              <div style=${{fontSize:12,color:C.muted,lineHeight:1.5,marginBottom:12}}>Spielerin wird aus der Auswahl entfernt. Ihre ${affected} Spiel${affected!==1?'e':''} bleiben für die anderen erhalten. Eigene Daten werden lokal gesichert und können wiederhergestellt werden.</div>
+              <button onClick=${()=>{onArchive(deleteConfirm);setDeleteConfirm(null);}} style=${{width:'100%',padding:'12px',borderRadius:12,border:'none',background:'#92400e',color:'#fde68a',fontSize:14,fontWeight:700,cursor:'pointer'}}>📦 Archivieren</button>
             </div>
-
-            <!-- Option 2: Hard delete -->
-            <div style=${{marginTop:6}}>
-              <button onClick=${()=>{ onHardDelete(deleteConfirm); setDeleteConfirm(null); }}
-                style=${{width:'100%',padding:'10px',borderRadius:12,
-                  background:'none',border:`1px solid ${C.border}`,
-                  color:C.muted,fontSize:12,cursor:'pointer'}}>
-                ✕ Komplett löschen inkl. aller Spiele
-              </button>
-            </div>
-          </div>` : html`<div>
-            <div style=${{fontSize:13,color:C.muted,lineHeight:1.5,marginBottom:16}}>
-              Diese Spielerin hat keine Spiele und wird dauerhaft gelöscht.
-            </div>
-            <button onClick=${()=>{ onHardDelete(deleteConfirm); setDeleteConfirm(null); }} style=${{
-              width:'100%',padding:'13px',borderRadius:14,border:'none',
-              background:'#7f1d1d',color:'white',fontSize:15,fontWeight:700,cursor:'pointer',
-            }}>✕ Endgültig löschen</button>
+            <button onClick=${()=>{onHardDelete(deleteConfirm);setDeleteConfirm(null);}} style=${{width:'100%',padding:'10px',borderRadius:12,background:'none',border:`1px solid ${C.border}`,color:C.muted,fontSize:12,cursor:'pointer'}}>✕ Komplett löschen inkl. aller Spiele</button>
+          </div>`:html`<div>
+            <div style=${{fontSize:13,color:C.muted,lineHeight:1.5,marginBottom:16}}>Diese Spielerin hat keine Spiele und wird dauerhaft gelöscht.</div>
+            <button onClick=${()=>{onHardDelete(deleteConfirm);setDeleteConfirm(null);}} style=${{width:'100%',padding:'13px',borderRadius:14,border:'none',background:'#7f1d1d',color:'white',fontSize:15,fontWeight:700,cursor:'pointer'}}>✕ Endgültig löschen</button>
           </div>`}
+          <button onClick=${()=>setDeleteConfirm(null)} style=${{width:'100%',marginTop:10,padding:'12px',borderRadius:14,background:'none',border:`1px solid ${C.border}`,color:C.muted,fontSize:14,cursor:'pointer'}}>Abbrechen</button>
+        </div>
+      </div>`;
+    })()}
 
-          <button onClick=${()=>setDeleteConfirm(null)} style=${{
-            width:'100%',marginTop:10,padding:'12px',borderRadius:14,
-            background:'none',border:`1px solid ${C.border}`,
-            color:C.muted,fontSize:14,cursor:'pointer',
-          }}>Abbrechen</button>
+    <!-- Single game delete modal -->
+    ${deleteGameConfirm&&(()=>{
+      const g=games.find(x=>x.id===deleteGameConfirm);
+      if(!g){setDeleteGameConfirm(null);return null;}
+      const sc=g.players.map(p=>calc(p.scores).total);
+      return html`<div onClick=${()=>setDeleteGameConfirm(null)} style=${{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'flex-end',justifyContent:'center',zIndex:50}}>
+        <div onClick=${e=>e.stopPropagation()} className="slide-up" style=${{background:C.surface,borderRadius:'22px 22px 0 0',width:'100%',maxWidth:460,padding:'24px 20px 44px',borderTop:`2px solid ${C.red}`}}>
+          <div style=${{width:36,height:4,background:C.border,borderRadius:2,margin:'0 auto 20px'}}/>
+          <div style=${{fontSize:16,fontWeight:800,marginBottom:4}}>Spiel löschen</div>
+          <div style=${{fontSize:12,color:C.muted,marginBottom:14}}>${g.date} · ${g.players.length} Spieler · ${MODE_ICON[gameMode(g)]} ${MODE_LABEL[gameMode(g)]}</div>
+          <div style=${{display:'flex',flexWrap:'wrap',gap:6,marginBottom:18}}>
+            ${g.players.map((p,i)=>html`<div key=${i} style=${{background:C.surface2,borderRadius:10,padding:'5px 10px',borderLeft:`3px solid ${pColor(p.name,roster)||PC[i%5]}`}}>
+              <span style=${{fontSize:11,color:C.muted}}>${p.name} </span><span style=${{fontSize:13,fontWeight:700}}>${sc[i]}</span>
+            </div>`)}
+          </div>
+          <button onClick=${()=>{onDeleteGame(deleteGameConfirm);setDeleteGameConfirm(null);}} style=${{width:'100%',padding:'13px',borderRadius:14,border:'none',background:'#7f1d1d',color:'white',fontSize:15,fontWeight:700,cursor:'pointer',marginBottom:10}}>🗑 Spiel endgültig löschen</button>
+          <button onClick=${()=>setDeleteGameConfirm(null)} style=${{width:'100%',padding:'12px',borderRadius:14,background:'none',border:`1px solid ${C.border}`,color:C.muted,fontSize:14,cursor:'pointer'}}>Abbrechen</button>
         </div>
       </div>`;
     })()}
   </div>`;
 }
 
-// ══ GITHUB SETTINGS ══════════════════════════════════════════════
+// ═══ ROSTER MANAGER ═════════════════════════════════════════════
+function RosterManager({roster,games,onDelete,onRename,onBack}) {
+  const [editing,setEditing]=useState(null);
+  const [editVal,setEditVal]=useState('');
+  const startEdit=name=>{setEditing(name);setEditVal(name);};
+  const saveEdit=()=>{onRename(editing,editVal);setEditing(null);};
+  const gameCount=name=>games.filter(g=>g.players.some(p=>p.name===name)).length;
+  const duplicates=roster.filter(n=>roster.some(m=>m!==n&&m.toLowerCase()===n.toLowerCase()));
 
+  return html`<div style=${{maxWidth:440,margin:'0 auto',padding:'20px 16px 48px'}}>
+    <div style=${{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
+      <button onClick=${onBack} style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:20,padding:0}}>‹</button>
+      <span style=${{fontSize:20,fontWeight:800}}>👥 Spieler verwalten</span>
+    </div>
+    ${duplicates.length>0&&html`<div style=${{background:'#3d1a00',border:`1px solid #f59e0b55`,borderRadius:12,padding:'10px 14px',marginBottom:16,fontSize:12,color:'#fde68a',lineHeight:1.6}}>
+      ⚠ Doppelte Namen: ${[...new Set(duplicates.map(d=>d.toLowerCase()))].map(d=>roster.filter(n=>n.toLowerCase()===d).join(' & ')).join(', ')} — Bitte umbenennen.
+    </div>`}
+    <div style=${{fontSize:11,color:C.muted2,letterSpacing:2,textTransform:'uppercase',marginBottom:10,fontWeight:700}}>${roster.length} Spieler</div>
+    ${roster.map(name=>{
+      const ci=roster.indexOf(name),gCount=gameCount(name),isDup=duplicates.includes(name);
+      return html`<div key=${name} style=${{background:C.surface,borderRadius:14,padding:'12px 14px',marginBottom:8,border:`1px solid ${isDup?'#f59e0b55':C.border}`}}>
+        ${editing===name
+          ?html`<div style=${{display:'flex',gap:8,alignItems:'center'}}>
+            <input value=${editVal} onChange=${e=>setEditVal(e.target.value)} onKeyDown=${e=>{if(e.key==='Enter')saveEdit();if(e.key==='Escape')setEditing(null);}} autoFocus
+              style=${{flex:1,background:C.surface2,border:`2px solid ${PC[ci%5]}`,borderRadius:10,padding:'8px 12px',color:C.text,fontSize:15,outline:'none'}}/>
+            <button onClick=${saveEdit} style=${{background:C.green,border:'none',borderRadius:10,padding:'8px 12px',color:'white',cursor:'pointer',fontWeight:700,fontSize:13}}>✓</button>
+            <button onClick=${()=>setEditing(null)} style=${{background:C.surface2,border:`1px solid ${C.border}`,borderRadius:10,padding:'8px 12px',color:C.muted,cursor:'pointer',fontSize:13}}>✕</button>
+          </div>`
+          :html`<div style=${{display:'flex',alignItems:'center',gap:10}}>
+            <div style=${{flex:1}}>
+              <div style=${{fontWeight:700,fontSize:15,color:PCL[ci%5]}}>${name}</div>
+              <div style=${{fontSize:11,color:C.muted,marginTop:1}}>${gCount} ${gCount===1?'Spiel':'Spiele'}</div>
+            </div>
+            <button onClick=${()=>startEdit(name)} style=${{background:'none',border:`1px solid ${C.border}`,borderRadius:8,padding:'6px 10px',color:C.muted,cursor:'pointer',fontSize:13}}>✏️</button>
+            <button onClick=${()=>onDelete(name)} style=${{background:'none',border:`1px solid ${C.red}44`,borderRadius:8,padding:'6px 10px',color:C.red,cursor:'pointer',fontSize:14}}>🗑</button>
+          </div>`}
+      </div>`;
+    })}
+    <div style=${{marginTop:16,fontSize:12,color:C.muted2,textAlign:'center',lineHeight:1.6}}>Umbenennen aktualisiert auch alle gespeicherten Spiele.</div>
+  </div>`;
+}
+
+// ═══ GITHUB SETTINGS ════════════════════════════════════════════
 function GhSettings({initial,onSave,onBack}) {
   const [token,setToken]=useState(initial?.token||'');
   const [owner,setOwner]=useState(initial?.owner||'');
   const [repo,setRepo]  =useState(initial?.repo||'');
   const [testing,setTesting]=useState(false);
   const [res,setRes]=useState(null);
-  const test=async()=>{setTesting(true);setRes(null);try{const r=await fetch(`https://api.github.com/repos/${owner}/${repo}`,{headers:{Authorization:`token ${token}`}});setRes(r.ok?{ok:true,msg:'✓ Verbindung erfolgreich!'}:{ok:false,msg:`Fehler ${r.status}`});}catch{setRes({ok:false,msg:'Netzwerkfehler.'});}setTesting(false);};
-  const F=({label,val,set,type='text',ph})=>html`<div style=${{marginBottom:12}}><label style=${{fontSize:11,color:C.muted,fontWeight:700,letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:5}}>${label}</label><input type=${type} value=${val} onChange=${e=>set(e.target.value)} placeholder=${ph} style=${{width:'100%',background:C.surface2,border:`1px solid ${C.border}`,borderRadius:12,padding:'11px 14px',color:C.text,fontSize:15,outline:'none'}}/></div>`;
+  const test=async()=>{
+    setTesting(true);setRes(null);
+    try{
+      const ur=await fetch('https://api.github.com/user',{headers:{Authorization:`token ${token}`,Accept:'application/vnd.github.v3+json'}});
+      const uj=await ur.json().catch(()=>({}));
+      const tokenOwner=uj.login||'unbekannt',scopes=ur.headers.get('X-OAuth-Scopes')||'';
+      if(tokenOwner!==owner){setRes({ok:false,msg:`⚠ Token gehört "${tokenOwner}", nicht "${owner}"!`});setTesting(false);return;}
+      const r=await fetch(`https://api.github.com/repos/${owner}/${repo}`,{headers:{Authorization:`token ${token}`,Accept:'application/vnd.github.v3+json'}});
+      if(!r.ok){setRes({ok:false,msg:`Fehler ${r.status}: Repo nicht gefunden.`});setTesting(false);return;}
+      const testContent=btoa(JSON.stringify({test:true,time:Date.now()}));
+      const wr=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/.kniffel-writetest`,
+        {method:'PUT',headers:{Authorization:`token ${token}`,'Content-Type':'application/json',Accept:'application/vnd.github.v3+json'},body:JSON.stringify({message:'write test',content:testContent})});
+      if(wr.ok){
+        const wj=await wr.json();
+        await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/.kniffel-writetest`,{method:'DELETE',headers:{Authorization:`token ${token}`,'Content-Type':'application/json',Accept:'application/vnd.github.v3+json'},body:JSON.stringify({message:'cleanup',sha:wj.content.sha})}).catch(()=>{});
+        setRes({ok:true,msg:`✓ Alles ok! Token von "${tokenOwner}", Scopes: ${scopes}`});
+      }else{const wj=await wr.json().catch(()=>({}));setRes({ok:false,msg:`Token ok aber Schreiben fehlschlägt: ${wr.status}: ${wj.message||'?'}`});}
+    }catch(e){setRes({ok:false,msg:`Fehler: ${e.message}`});}
+    setTesting(false);
+  };
+  const F=({label,val,set,type='text',ph})=>html`<div style=${{marginBottom:12}}>
+    <label style=${{fontSize:11,color:C.muted,fontWeight:700,letterSpacing:1,textTransform:'uppercase',display:'block',marginBottom:5}}>${label}</label>
+    <input type=${type} value=${val} onChange=${e=>set(e.target.value)} placeholder=${ph}
+      style=${{width:'100%',background:C.surface2,border:`1px solid ${C.border}`,borderRadius:12,padding:'11px 14px',color:C.text,fontSize:15,outline:'none'}}/>
+  </div>`;
   return html`<div style=${{maxWidth:400,margin:'0 auto',padding:'20px'}}>
     <div style=${{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
       <button onClick=${onBack} style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:20}}>‹</button>
       <span style=${{fontSize:20,fontWeight:800}}>☁ GitHub Sync</span>
     </div>
     <div style=${{background:C.surface,borderRadius:14,padding:14,marginBottom:16,fontSize:12,color:C.muted,lineHeight:1.7}}>
-      Daten beider Modi (📝 + 🎲) werden gemeinsam in <code style=${{color:PCL[0]}}>gamedata.json</code> gespeichert.
+      <strong style=${{color:C.text}}>1.</strong> Privates Repo erstellen, z.B. <code style=${{color:PCL[0]}}>yahtzee-data</code><br/>
+      <strong style=${{color:C.text}}>2.</strong> Token unter Settings → Developer settings → Tokens (classic) mit <code style=${{color:PCL[0]}}>repo</code>-Berechtigung<br/>
+      <strong style=${{color:C.text}}>3.</strong> Unten eintragen
     </div>
     <${F} label="Personal Access Token" val=${token} set=${setToken} type="password" ph="ghp_..."/>
-    <${F} label="GitHub-Nutzername"     val=${owner} set=${setOwner} ph="dein-name"/>
+    <${F} label="GitHub-Nutzername"     val=${owner} set=${setOwner} ph="sowyyn"/>
     <${F} label="Repository-Name"       val=${repo}  set=${setRepo}  ph="yahtzee-data"/>
     <div style=${{display:'flex',gap:10,marginTop:8}}>
       <button onClick=${test} disabled=${testing||!token||!owner||!repo} style=${{flex:1,background:C.surface2,border:`1px solid ${C.border}`,borderRadius:12,padding:'11px',color:C.text,cursor:'pointer',fontSize:14,fontWeight:600,opacity:(!token||!owner||!repo)?0.4:1}}>${testing?'…':'Testen'}</button>
-      <button onClick=${()=>onSave({token,owner,repo})} disabled=${!token||!owner||!repo} style=${{flex:2,background:PC[0],border:'none',borderRadius:12,padding:'11px',color:'white',cursor:'pointer',fontSize:14,fontWeight:700,opacity:(!token||!owner||!repo)?0.4:1}}>Aktivieren</button>
+      <button onClick=${()=>onSave({token:token.trim(),owner:owner.trim(),repo:repo.trim()})} disabled=${!token.trim()||!owner.trim()||!repo.trim()} style=${{flex:2,background:PC[0],border:'none',borderRadius:12,padding:'11px',color:'white',cursor:'pointer',fontSize:14,fontWeight:700,opacity:(!token||!owner||!repo)?0.4:1}}>Aktivieren</button>
     </div>
-    ${res&&html`<div style=${{marginTop:12,padding:'10px 14px',borderRadius:10,background:res.ok?'#052e16':'#2d0a0a',color:res.ok?C.green:C.red,fontSize:13}}>${res.msg}</div>`}
+    ${res&&html`<div style=${{marginTop:12,padding:'10px 14px',borderRadius:10,background:res.ok?'#052e16':'#5c1a1a',color:res.ok?C.green:C.red,fontSize:13,whiteSpace:'pre-wrap'}}>${res.msg}</div>`}
     ${initial?.token&&html`<button onClick=${()=>onSave(null)} style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:12,marginTop:14,display:'block',width:'100%',textAlign:'center'}}>Sync deaktivieren</button>`}
   </div>`;
 }
 
-// ══ SHARED ═══════════════════════════════════════════════════════
-
+// ═══ SHARED ═════════════════════════════════════════════════════
 function Btn({onClick,bg,border,children,disabled}) {
   return html`<button onClick=${onClick} disabled=${disabled} style=${{width:'100%',padding:'13px 16px',borderRadius:14,border:border?`1px solid ${border}`:'none',background:disabled?C.muted2:bg,color:'white',fontSize:15,fontWeight:700,cursor:disabled?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,opacity:disabled?0.5:1}}>${children}</button>`;
 }
 
-// ══ BOOT ═════════════════════════════════════════════════════════
-
-if ('serviceWorker' in navigator) {
+// ═══ BOOT ════════════════════════════════════════════════════════
+if('serviceWorker' in navigator) {
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 }
 createRoot(document.getElementById('root')).render(html`<${App}/>`);

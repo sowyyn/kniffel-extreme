@@ -1,5 +1,6 @@
-const CACHE = 'kniffel-extreme-game-v7'; // ⬆️ Bei jedem Update hochzählen
+const CACHE = 'yahtzee-extreme-v20'; // ⬆️ Bei jedem Update nur diese Zahl hochzählen!
 
+// Pre-cache only local files; CDN files get cached on first use
 const LOCAL = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
@@ -18,7 +19,7 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-  // Never cache GitHub API calls
+  // Never cache GitHub API calls — always fetch fresh
   if (e.request.url.includes('api.github.com')) {
     e.respondWith(fetch(e.request));
     return;
