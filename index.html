@@ -82,7 +82,8 @@ const LOWER_CLASSIC = [
   { id:'kniffel',       label:'Kniffel',     t:'fix', pts:50,            rules:'5 gleiche Zahlen → 50 Punkte.' },
   { id:'chance',        label:'Chance',      t:'var', desc:'alle Augen', rules:'Beliebiger Wurf. Alle Augen aller 5 Würfel zählen.' },
 ];
-const ZUSATZ_RULES='Jeder weitere Kniffel bringt +50, wenn das Kniffel-Feld mit 50 belegt ist. Joker: Ist das passende obere Feld frei, muss der Wurf dort eingetragen werden. Sonst zählt er in jedem freien Feld unten mit vollem Wert. Ist unten alles belegt, wird ein oberes Feld gestrichen.';
+const ZUSATZ_RULES='Ab dem 2. Kniffel gibt es je +50 Bonus, wenn im Feld Kniffel schon 50 Punkte stehen. Der Wurf wird zusätzlich eingetragen (Beispiel fünf Vieren). 1. Ist Vierer frei, kommt er dorthin (20 Punkte). 2. Ist Vierer belegt, wählst du ein freies Feld unten, es zählt mit vollem Wert (z.B. Gr. Straße 40). 3. Ist unten alles belegt, wählst du ein freies Feld oben, es bekommt 0 Punkte. Die +50 gibt es in jedem Fall.';
+const ZUSATZ_STEPS=['Ab dem 2. Kniffel je +50, wenn im Feld Kniffel schon 50 stehen.','1. Passendes Zahlenfeld oben frei → Wurf dort eintragen.','2. Sonst ein freies Feld unten wählen, es zählt mit vollem Wert.','3. Ist unten alles belegt → ein freies Feld oben bekommt 0 Punkte.'];
 // ⬇ Spielvarianten. Alte Spiele ohne "variant" gelten als Extreme.
 const VARIANTS = {
   extreme:{ id:'extreme', label:'Kniffel Extreme',  short:'Extreme',   upper:UPPER, lower:LOWER,         bonusAt:73, bonusPts:45, dice:6, d10:true,  chips:true  },
@@ -473,9 +474,12 @@ function GameSetup({roster,games,onStart,onBack}) {
         </span>
         <span style=${{flex:1}}>
           <span style=${{fontSize:13,fontWeight:700,display:'block'}}>Zusatz-Kniffel +50 mit Joker</span>
-          <span style=${{fontSize:10,color:C.muted}}>${zusatz?'An · jeder weitere Kniffel +50':'Aus · nur ein Kniffel zählt'}</span>
+          <span style=${{fontSize:10,color:C.muted}}>${zusatz?'An · ab dem 2. Kniffel je +50 Bonus':'Aus · nur ein Kniffel zählt'}</span>
         </span>
       </button>`}
+      ${variant==='classic'&&zusatz&&html`<div style=${{margin:'-12px 0 20px',padding:'8px 12px',background:C.surface,borderRadius:'0 0 14px 14px',border:`1px solid ${PC[0]}`,borderTop:'none',fontSize:11,color:C.muted,lineHeight:1.6}}>
+        ${ZUSATZ_STEPS.map((t,i)=>html`<div key=${i} style=${{color:i===0?'#fde68a':C.muted}}>${t}</div>`)}
+      </div>`}
       <div style=${{fontSize:11,color:C.muted2,letterSpacing:2,textTransform:'uppercase',marginBottom:10,fontWeight:700}}>Spielmodus wählen</div>
       <div style=${{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
         <button onClick=${()=>go('manual')} style=${{
@@ -554,7 +558,7 @@ function ManualGame({game,roster,onCell,onFinish,onCancel,onChipUse,onChipReset,
         <${GSec} label="UNTERER TEIL"/>
         ${R.lower.map(cat=>html`<${GRow} key=${cat.id} gridCols=${gridCols} label=${cat.label} sub=${cat.t==='fix'?`${cat.pts} Pkt`:cat.desc}>
           ${game.players.map((_,i)=>html`<${GCell} key=${i} bg=${cBg(i,cat.id)} color=${cCol(i,cat.id)} cw=${cw} onClick=${()=>onCell(i,cat)}>${cTxt(i,cat.id)}</${GCell}>`)}</${GRow}>`)}
-        ${zus&&html`<${GRow} gridCols=${gridCols} label="Kniffel-Bonus" sub="+50 je weiterem Kniffel">
+        ${zus&&html`<${GRow} gridCols=${gridCols} label="Kniffel-Bonus" sub="ab 2. Kniffel je +50">
           ${game.players.map((p,i)=>html`<${GCell} key=${i} bg=${p.scores.zusatzKniffel?'#2a2490':pCol(i)+'1a'} color=${p.scores.zusatzKniffel?C.text:C.muted2} cw=${cw} onClick=${()=>onCell(i,ZCAT)}>${p.scores.zusatzKniffel?String(p.scores.zusatzKniffel):'·'}</${GCell}>`)}</${GRow}>`}
         <${GTot} gridCols=${gridCols} label="Unterer Teil"  vals=${sc.map(s=>s.l)} hidden=${!scoresVisible}/>
         <${GTot} gridCols=${gridCols} label="Oberer Teil"   vals=${sc.map(s=>s.uTotal)} hidden=${!scoresVisible}/>
@@ -603,7 +607,7 @@ function Modal({modal,roster,rules=VARIANTS.extreme,val,setVal,onScore,onCross,o
         ${cat.rules&&html`<div style=${{fontSize:12,color:C.muted,marginTop:6,lineHeight:1.5,background:C.surface2,borderRadius:10,padding:'8px 12px',textAlign:'left'}}>📖 ${cat.rules}</div>`}
       </div>
       ${isUpper&&html`<div style=${{display:'flex',flexDirection:'column',gap:12,marginTop:4}}>
-        <div style=${{fontSize:12,color:C.muted,textAlign:'center'}}>${isZ?'Wie viele weitere Kniffel hast du gewürfelt?':`Wie viele ${cat.label} hast du gewürfelt?`}</div>
+        <div style=${{fontSize:12,color:C.muted,textAlign:'center'}}>${isZ?'Wie viele weitere Kniffel (ab dem 2.) hattest du? Nur wenn im Feld Kniffel 50 stehen.':`Wie viele ${cat.label} hast du gewürfelt?`}</div>
         <div style=${{display:'flex',alignItems:'center',justifyContent:'center',gap:16}}>
           <button onClick=${()=>setVal(String(Math.max(0,(val===''?0:Number(val))-1)))} style=${{width:48,height:48,borderRadius:'50%',background:C.surface2,border:`1px solid ${C.border}`,color:C.text,fontSize:24,cursor:'pointer',fontWeight:700}}>−</button>
           <div style=${{textAlign:'center',minWidth:60}}>
@@ -778,7 +782,10 @@ function DiceGame({game,roster,onUpdate,onFinish,onCancel,onBack}) {
     ${hasRolled&&!done&&html`<div style=${{padding:'4px 10px 8px'}}>
       <div style=${{fontSize:10,fontWeight:700,color:C.muted2,letterSpacing:2,textTransform:'uppercase',padding:'10px 4px 6px'}}>OBERER TEIL</div>
       ${zus&&html`<div className="pop-in" style=${{margin:'6px 2px 4px',padding:'8px 12px',borderRadius:12,background:'rgba(250,204,21,0.1)',border:'1px solid rgba(250,204,21,0.45)',fontSize:12,color:'#fde68a',lineHeight:1.4}}>
-        ⭐ Zusatz-Kniffel · +50 Bonus. Joker: ${jokerForced?`Eintrag nur bei ${UPPER[turn.dice[0]-1].label}.`:lowerOpen?'jedes freie Feld unten mit vollem Wert.':'ein oberes Feld streichen.'}
+        ⭐ <strong>Weiterer Kniffel! +50 Bonus.</strong> ${jokerForced
+          ?`Trag den Wurf bei ${UPPER[turn.dice[0]-1].label} ein (${dSum(turn.dice)} Punkte).`
+          :lowerOpen?`${UPPER[turn.dice[0]-1].label} ist schon belegt, wähle ein freies Feld unten. Es zählt mit vollem Wert.`
+          :'Unten ist alles belegt, wähle ein freies Feld oben. Es bekommt 0 Punkte, die +50 bleiben.'}
       </div>`}
       ${R.upper.map(cat=>{
         const scored=player.scores[cat.id]!==undefined,pot=potentials[cat.id],good=!scored&&pot!==undefined&&pot>0;
@@ -825,11 +832,13 @@ function DiceGame({game,roster,onUpdate,onFinish,onCancel,onBack}) {
           ${scoreModal.cat.rules&&html`<div style=${{fontSize:12,color:C.muted,marginTop:6,background:C.surface2,borderRadius:10,padding:'8px 12px',textAlign:'left',lineHeight:1.5}}>📖 ${scoreModal.cat.rules}</div>`}
           ${scoreModal.good&&html`<div style=${{fontSize:38,fontWeight:900,color:pColL,marginTop:10}} className="pop-in">${scoreModal.pot}</div>`}
           ${scoreModal.good&&html`<div style=${{fontSize:11,color:C.muted}}>Punkte</div>`}
-          ${zus&&html`<div style=${{fontSize:12,color:'#fde68a',marginTop:8}}>⭐ Joker · Zusatz-Kniffel +50 wird zusätzlich gutgeschrieben</div>`}
+          ${zus&&html`<div style=${{fontSize:12,color:'#fde68a',marginTop:8}}>⭐ Zusätzlich +50 Bonus für den weiteren Kniffel</div>`}
         </div>
         <div style=${{display:'flex',flexDirection:'column',gap:10}}>
           ${scoreModal.good&&html`<${Btn} onClick=${()=>scoreCategory(scoreModal.cat.id,scoreModal.pot)} bg="#14532d">✓ ${scoreModal.pot} Punkte eintragen</${Btn}>`}
-          <${Btn} onClick=${()=>scoreCategory(scoreModal.cat.id,0)} bg="#7f1d1d">✕ Streichen — 0 Punkte</${Btn}>
+          ${zus&&!lowerOpen&&!jokerForced
+            ?html`<${Btn} onClick=${()=>scoreCategory(scoreModal.cat.id,0)} bg="#14532d">✓ 0 Punkte eintragen (+50 Bonus)</${Btn}>`
+            :html`<${Btn} onClick=${()=>scoreCategory(scoreModal.cat.id,0)} bg="#7f1d1d">✕ Streichen — 0 Punkte</${Btn}>`}
           <button onClick=${()=>setScoreModal(null)} style=${{background:'none',border:'none',color:C.muted,cursor:'pointer',fontSize:13,padding:'8px',textAlign:'center'}}>Abbrechen</button>
         </div>
       </div>
